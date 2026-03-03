@@ -4,7 +4,6 @@ from learning_platform_db import (
     create_tables,
     UserCRUD,
     InteractionCRUD,
-    ReviewCRUD,
     AnalyticsQueries,
     ReviewQueries,
     KnowledgeItem  # Добавьте этот импорт!
