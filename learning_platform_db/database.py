@@ -8,10 +8,8 @@ import os
 Base = declarative_base()  # Теперь предупреждения не будет
 
 # Настройки подключения
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://user:password@localhost/learning_db"
-)
+DATABASE_URL = "postgresql://postgres:kotsemen16@localhost:1843/learning_db"
+
 
 engine = create_engine(
     DATABASE_URL,
@@ -25,6 +23,10 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine
 )
+
+def create_tables():
+    """Создает все таблицы в базе данных"""
+    Base.metadata.create_all(bind=engine)
 
 def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
