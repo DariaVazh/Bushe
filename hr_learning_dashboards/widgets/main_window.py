@@ -3,24 +3,34 @@ import sys
 import os
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLabel, QComboBox,
-                             QPushButton, QMessageBox)
+                             QPushButton, QMessageBox, QStatusBar)
 from PyQt5.QtCore import Qt
+from sqlalchemy import text
 
-# Импортируем из пакета learning_platform_db
 from Bushe.learning_platform_db.database import get_db
 from Bushe.learning_platform_db.queries import AnalyticsQueries
 
 from .learning_curve_chart import LearningCurveChart
-from sqlalchemy import text
 
 
 class MainWindow(QMainWindow):
-    # ... весь код класса без изменений ...
-    def __init__(self):
+    def __init__(self, user_data=None):
         super().__init__()
 
-        self.setWindowTitle("HR Learning Dashboard")
-        self.setGeometry(100, 100, 1400, 900)
+        self.user_data = user_data or {'username': 'Гость', 'role': 'guest'}
+
+        self.setWindowTitle(f"HR Learning Dashboard - {self.user_data['full_name']}")
+
+        # ПОЛНОЭКРАННЫЙ РЕЖИМ
+        self.showMaximized()  # вместо setGeometry
+
+        # Или если нужен реальный fullscreen (без заголовка):
+        # self.showFullScreen()
+
+        # Добавляем статус бар
+        self.statusBar().showMessage(f"Пользователь: {self.user_data['full_name']} | Роль: {self.user_data['role']}")
+        # Добавляем статус бар
+        self.statusBar().showMessage(f"Пользователь: {self.user_data['full_name']} | Роль: {self.user_data['role']}")
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -39,11 +49,16 @@ class MainWindow(QMainWindow):
         panel_layout = QHBoxLayout(panel)
         panel_layout.setContentsMargins(0, 0, 0, 0)
 
-        title = QLabel("📊 Аналитика обучения")
+        title = QLabel(f"📊 Аналитика обучения")
         title.setStyleSheet("font-size: 24px; font-weight: bold; color: #ffffff;")
         panel_layout.addWidget(title)
 
         panel_layout.addStretch()
+
+        # Добавляем метку с ролью
+        role_label = QLabel(f"[{self.user_data['role']}]")
+        role_label.setStyleSheet("color: #3498db; font-size: 14px;")
+        panel_layout.addWidget(role_label)
 
         panel_layout.addWidget(QLabel("Сотрудник:"))
         self.user_combo = QComboBox()
@@ -54,6 +69,11 @@ class MainWindow(QMainWindow):
         self.refresh_btn = QPushButton("🔄 Обновить")
         self.refresh_btn.clicked.connect(self.refresh_data)
         panel_layout.addWidget(self.refresh_btn)
+
+        # Кнопка выхода
+        self.logout_btn = QPushButton("🚪 Выйти")
+        self.logout_btn.clicked.connect(self.logout)
+        panel_layout.addWidget(self.logout_btn)
 
         self.layout.addWidget(panel)
 
@@ -93,6 +113,8 @@ class MainWindow(QMainWindow):
 
             db.close()
 
+            self.statusBar().showMessage(f"Загружены данные для пользователя {user_id}")
+
         except Exception as e:
             print(f"Ошибка загрузки данных: {e}")
             QMessageBox.warning(self, "Ошибка", f"Не удалось загрузить данные: {str(e)}")
@@ -106,3 +128,28 @@ class MainWindow(QMainWindow):
         if self.user_combo.count() > 0:
             user_id = int(self.user_combo.currentText())
             self.load_user_data(user_id)
+
+    def logout(self):
+        """Выход из системы"""
+        reply = QMessageBox.question(
+            self,
+            'Подтверждение',
+            'Вы действительно хотите выйти?',
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            self.close()
+            # Запускаем новый экземпляр приложения с формой входа
+            from .login_dialog import LoginDialog
+            import sys
+            from PyQt5.QtWidgets import QApplication
+
+            dialog = LoginDialog()
+            if dialog.exec_() == LoginDialog.Accepted:
+                user_data = dialog.login_successful
+                self.__init__(user_data)
+                self.show()
+            else:
+                sys.exit()
