@@ -470,10 +470,3 @@ class AuthWindow(QtWidgets.QMainWindow):
         else:
             self.reg_lineEdit_rep_password.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
             self.reg_btn_show_rep_password.setText("👁")
-
-    def open_main_window(self, user_data):
-        """Открывает главное окно дашборда"""
-        from .main_window import MainWindow
-        self.main_window = MainWindow(user_data)
-        self.main_window.showMaximized()
-        self.close()
