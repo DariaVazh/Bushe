@@ -1,0 +1,4 @@
+# phone_app/requirements.txt
+PyQt6>=6.4.0
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
