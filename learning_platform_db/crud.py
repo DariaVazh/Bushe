@@ -9,12 +9,16 @@ from .database import SessionLocal
 
 class UserCRUD:
     @staticmethod
-    def create(db: Session, user_name: str, user_phone_number: Optional[str] = None, user_password_cash: Optional[str] = None) -> User:
+    def create(db: Session, user_name: str, user_surname: str,
+               user_role:str, user_phone_number: str,
+               user_password_cash: str) -> User:
         """Создает нового пользователя с обязательным именем"""
         user = User(
             user_name=user_name,
+            user_surname=user_surname,
             user_phone_number=user_phone_number,
-            user_password_cash=user_password_cash
+            user_password_cash=user_password_cash,
+            user_role=user_role,
             # created_at и last_active заполнятся автоматически
         )
         db.add(user)

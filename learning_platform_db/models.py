@@ -14,8 +14,10 @@ class User(Base):
     user_id = Column(Integer, primary_key=True, index=True, nullable=False)
 
     user_name = Column(String, nullable=False)
+    user_surname = Column(String, nullable=False)
     user_phone_number = Column(String)
     user_password_cash = Column(String)
+    user_role = Column(String)
 
     # Дополнительные полезные поля
     created_at = Column(DateTime, default=datetime.utcnow)

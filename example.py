@@ -18,7 +18,14 @@ def main():
 
     try:
         print("👤 Создаем пользователя...")
-        user = UserCRUD.create(db, user_name="Тестовый пользователь")
+        user = UserCRUD.create(
+            db,
+            user_name="Тестовый пользователь",
+            user_surname="ТестоваяФамилия",  # Добавь реальную фамилию
+            user_phone_number="+71234567890",  # По желанию
+            user_password_cash="секретный_пароль",  # По желанию
+            user_role="student"  # По желанию
+        )
         print(f"   ✅ Создан пользователь с ID: {user.user_id}, имя: {user.user_name}")
 
         # ✅ ДОБАВЛЯЕМ ТЕСТОВЫЕ ЭЛЕМЕНТЫ ЗНАНИЙ
