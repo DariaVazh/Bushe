@@ -6,7 +6,8 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QPushButton, QMessageBox, QStatusBar)
 from PyQt5.QtCore import Qt
 from sqlalchemy import text
-
+from PyQt5.QtWidgets import QTabWidget, QWidget, QVBoxLayout
+from .user_list_widget import UserListWidget
 from Bushe.learning_platform_db.database import get_db
 from Bushe.learning_platform_db.queries import AnalyticsQueries
 
@@ -153,3 +154,49 @@ class MainWindow(QMainWindow):
                 self.show()
             else:
                 sys.exit()
+
+    def create_charts(self):
+        """Создает вкладки с графиками и рейтингом"""
+        self.tab_widget = QTabWidget()
+        self.tab_widget.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #34495e;
+                background-color: #2c3e50;
+            }
+            QTabBar::tab {
+                background-color: #34495e;
+                color: white;
+                padding: 8px 15px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected {
+                background-color: #3498db;
+            }
+            QTabBar::tab:hover {
+                background-color: #3d566e;
+            }
+        """)
+
+        # Вкладка с графиком
+        self.chart_tab = QWidget()
+        chart_layout = QVBoxLayout(self.chart_tab)
+        self.chart = LearningCurveChart()
+        chart_layout.addWidget(self.chart)
+        self.tab_widget.addTab(self.chart_tab, "📈 Кривая обучения")
+
+        # Вкладка с рейтингом (только для админа)
+        if self.user_data['role'] == 'admin':
+            self.rating_tab = QWidget()
+            rating_layout = QVBoxLayout(self.rating_tab)
+            self.user_list = UserListWidget()
+            self.user_list.set_user_role(self.user_data['role'])
+            self.user_list.load_users()
+            rating_layout.addWidget(self.user_list)
+            self.tab_widget.addTab(self.rating_tab, "🏆 Рейтинг сотрудников")
+
+        self.layout.addWidget(self.tab_widget)
+
+    def refresh_rating(self):
+        """Обновляет рейтинг (вызывается из кнопки обновления)"""
+        if hasattr(self, 'user_list'):
+            self.user_list.load_users()

@@ -116,6 +116,94 @@ class AnalyticsQueries:
         """)
         return pd.read_sql(query, db.bind)
 
+    # learning_platform_db/queries.py (добавить в класс AnalyticsQueries)
+
+    @staticmethod
+    def get_all_users(db: Session) -> List[Dict[str, Any]]:
+        """Возвращает список всех пользователей с базовой информацией"""
+        users = db.query(User).all()
+
+        result = []
+        for user in users:
+            # Считаем баллы пользователя
+            correct_count = db.query(Interaction).filter(
+                Interaction.user_id == user.user_id,
+                Interaction.outcome == 1
+            ).count()
+
+            total_count = db.query(Interaction).filter(
+                Interaction.user_id == user.user_id
+            ).count()
+
+            # Баллы: 10 за каждый правильный ответ
+            score = correct_count * 10
+
+            result.append({
+                'user_id': user.user_id,
+                'name': f"{user.user_name} {user.user_surname}",
+                'role': user.user_role,
+                'score': score,
+                'correct': correct_count,
+                'total': total_count,
+                'accuracy': round(correct_count / total_count * 100, 1) if total_count > 0 else 0
+            })
+
+        # Сортируем по баллам (убывание)
+        result.sort(key=lambda x: x['score'], reverse=True)
+        return result
+
+    @staticmethod
+    def get_user_details(db: Session, user_id: int) -> Dict[str, Any]:
+        """Возвращает детальную информацию о пользователе"""
+        user = db.query(User).filter(User.user_id == user_id).first()
+        if not user:
+            return {}
+
+        # Статистика по interactions
+        interactions = db.query(Interaction).filter(Interaction.user_id == user_id).all()
+
+        correct = sum(1 for i in interactions if i.outcome == 1)
+        total = len(interactions)
+
+        # Статистика по дням
+        from sqlalchemy import func
+        days_active = db.query(func.count(func.distinct(Interaction.timestamp))) \
+                          .filter(Interaction.user_id == user_id).scalar() or 0
+
+        # Последняя активность
+        last_active = db.query(Interaction.timestamp) \
+            .filter(Interaction.user_id == user_id) \
+            .order_by(Interaction.timestamp.desc()) \
+            .first()
+
+        # Прогресс по темам (из reviews)
+        reviews = db.query(Review).filter(Review.user_id == user_id).all()
+        topics_progress = [
+            {
+                'item_id': r.item_id,
+                'success_rate': round(r.success_rate * 100, 1) if r.success_rate else 0,
+                'review_count': r.review_count
+            }
+            for r in reviews[:5]  # топ-5 тем
+        ]
+
+        return {
+            'user_id': user.user_id,
+            'name': f"{user.user_name} {user.user_surname}",
+            'role': user.user_role,
+            'phone': user.user_phone_number or 'Не указан',
+            'created': user.created_at.strftime('%d.%m.%Y') if user.created_at else 'Неизвестно',
+            'last_active': last_active[0].strftime('%d.%m.%Y %H:%M') if last_active else 'Нет активности',
+            'stats': {
+                'correct': correct,
+                'total': total,
+                'accuracy': round(correct / total * 100, 1) if total > 0 else 0,
+                'score': correct * 10,
+                'days_active': days_active
+            },
+            'topics': topics_progress
+        }
+
 class ReviewQueries:
 
     @staticmethod
