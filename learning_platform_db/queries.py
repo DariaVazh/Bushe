@@ -1,6 +1,6 @@
 # queries.py
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, desc, text
+from sqlalchemy import func, and_, desc, text  # ДОБАВЬ text СЮДА
 from datetime import datetime, timedelta
 from .models import User, KnowledgeItem, Interaction, Review
 import pandas as pd
@@ -12,8 +12,7 @@ class AnalyticsQueries:
     @staticmethod
     def get_user_learning_curve(db: Session, user_id: int) -> pd.DataFrame:
         """Кривая обучения пользователя (успешность по времени)"""
-        # Используем f-string для подстановки user_id (безопасно, т.к. это число)
-        query = f"""
+        query = text(f"""
             SELECT 
                 DATE(timestamp) as date,
                 AVG(outcome) as daily_success_rate,
@@ -23,13 +22,13 @@ class AnalyticsQueries:
             WHERE user_id = {user_id}
             GROUP BY DATE(timestamp)
             ORDER BY date
-        """
+        """)
         return pd.read_sql(query, db.bind)
 
     @staticmethod
     def get_item_difficulty_analysis(db: Session) -> pd.DataFrame:
         """Анализ сложности элементов знаний"""
-        query = """
+        query = text("""
             SELECT 
                 ki.item_id,
                 COUNT(i.interaction_id) as total_attempts,
@@ -41,13 +40,13 @@ class AnalyticsQueries:
             GROUP BY ki.item_id
             HAVING COUNT(i.interaction_id) > 10
             ORDER BY success_rate
-        """
+        """)
         return pd.read_sql(query, db.bind)
 
     @staticmethod
     def get_spaced_repetition_effectiveness(db: Session) -> pd.DataFrame:
         """Эффективность интервальных повторений"""
-        query = """
+        query = text("""
             SELECT 
                 CASE 
                     WHEN delta_days < 1 THEN 'same_day'
@@ -69,15 +68,13 @@ class AnalyticsQueries:
                     WHEN '7-14_days' THEN 4
                     ELSE 5
                 END
-        """
+        """)
         return pd.read_sql(query, db.bind)
 
     @staticmethod
     def get_ml_training_data(db: Session, min_interactions: int = 10) -> pd.DataFrame:
         """Подготовка данных для ML модели (предсказание успешности)"""
-
-        # Используем текстовое форматирование для подстановки значения
-        query = f"""
+        query = text(f"""
             WITH user_stats AS (
                 SELECT 
                     user_id,
@@ -85,7 +82,7 @@ class AnalyticsQueries:
                     AVG(response_time) as user_avg_response_time
                 FROM interactions
                 GROUP BY user_id
-                HAVING COUNT(*) > {min_interactions}  -- Число подставляется напрямую
+                HAVING COUNT(*) > {min_interactions}
             ),
             item_stats AS (
                 SELECT 
@@ -116,9 +113,7 @@ class AnalyticsQueries:
             LEFT JOIN reviews r ON i.user_id = r.user_id AND i.item_id = r.item_id
             WHERE i.user_id IN (SELECT user_id FROM user_stats)
             ORDER BY i.timestamp
-        """
-
-        # Просто выполняем запрос без параметров
+        """)
         return pd.read_sql(query, db.bind)
 
 class ReviewQueries:
