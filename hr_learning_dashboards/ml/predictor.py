@@ -1,6 +1,7 @@
 # hr_learning_dashboards/ml/predictor.py
 import numpy as np
 import pandas as pd
+import pickle
 import sys
 import os
 from datetime import datetime, timedelta
@@ -16,7 +17,7 @@ from Bushe.learning_platform_db.database import get_db
 from Bushe.learning_platform_db.models import User, KnowledgeItem, Interaction, Review
 from sqlalchemy import func, text
 import joblib
-
+#EAFFDA
 
 class RecallPredictor:
     def __init__(self, model_path=None):
@@ -474,6 +475,7 @@ def analyze_single_user(predictor, db, user):
     """)
 
 
+# ============= ИНТЕРАКТИВНОЕ МЕНЮ =============
 if __name__ == "__main__":
     from recall_analyzer import RecallAnalyzer
 
@@ -491,9 +493,21 @@ if __name__ == "__main__":
     predictor.model = analyzer.model
     predictor.save_model('ml/recall_model.pkl')
 
+    # Подключение к БД
 
     db_gen = get_db()
     db = next(db_gen)
+
+    # Кэш для результатов
+    cache_file = 'ml/user_cache.pkl'
+    user_results = []
+
+    # Загружаем кэш если есть
+    if os.path.exists(cache_file):
+        print("\n📦 Загрузка кэша...")
+        with open(cache_file, 'rb') as f:
+            user_results = pickle.load(f)
+        print(f"✅ Загружены данные для {len(user_results)} пользователей")
 
     # Интерактивный режим
     while True:
@@ -505,6 +519,7 @@ if __name__ == "__main__":
         print("3. Топ-10 лучших")
         print("4. Топ-10 худших")
         print("5. Статистика по компании")
+        print("6. 🔄 Обновить кэш (пересчитать всех)")
         print("0. Выход")
 
         choice = input("\nВыберите опцию: ").strip()
@@ -512,13 +527,41 @@ if __name__ == "__main__":
         if choice == '0':
             break
 
+        elif choice == '6':  # Обновить кэш
+            print("\n📊 Пересчитываем всех пользователей...")
+            users = db.query(User).filter(User.user_name != 'admin').all()
+            user_results = []
+
+            for i, u in enumerate(users):
+                print(f"\r   Обработка: {i + 1}/{len(users)}", end="")
+                mastery = predictor.get_user_mastery(db, u.user_id)
+                user_results.append({
+                    'name': u.user_name,
+                    'role': u.user_role,
+                    'mastery': mastery['mastery_percentage'],
+                    'total_items': mastery['total_items'],
+                    'mastered': mastery['mastered_items'],
+                    'avg_prob': mastery['average_probability']
+                })
+
+            # Сохраняем в кэш
+            with open(cache_file, 'wb') as f:
+                pickle.dump(user_results, f)
+
+            print(f"\n✅ Кэш обновлён! Данные для {len(user_results)} пользователей")
+            input("\nНажмите Enter для продолжения...")
+
         elif choice == '1':
             # Показать всех пользователей
-            users = db.query(User).filter(User.user_name != 'admin').all()
-            print("\n📋 СПИСОК ПОЛЬЗОВАТЕЛЕЙ:")
-            print("-" * 50)
-            for i, u in enumerate(users, 1):
-                print(f"{i:2}. {u.user_name:15} (роль: {u.user_role})")
+            if not user_results:
+                print("⚠️ Сначала выполните опцию 6 для загрузки данных")
+            else:
+                print("\n📋 СПИСОК ПОЛЬЗОВАТЕЛЕЙ:")
+                print("-" * 60)
+                print(f"{'№':<3} {'Имя':<15} {'Роль':<12} {'Усвоение':<8} {'Фактов'}")
+                print("-" * 60)
+                for i, u in enumerate(sorted(user_results, key=lambda x: x['name']), 1):
+                    print(f"{i:<3} {u['name']:<15} {u['role']:<12} {u['mastery']:6.1f}%   {u['total_items']}")
             input("\nНажмите Enter для продолжения...")
 
         elif choice == '2':
@@ -580,109 +623,74 @@ if __name__ == "__main__":
             input("\nНажмите Enter для продолжения...")
 
         elif choice == '3':
-            # Топ-10 лучших
-            users = db.query(User).filter(User.user_name != 'admin').all()
-            results = []
+            # Топ-10 лучших (из кэша)
+            if not user_results:
+                print("⚠️ Сначала выполните опцию 6 для загрузки данных")
+            else:
+                sorted_results = sorted(user_results, key=lambda x: x['mastery'], reverse=True)
 
-            print("\n📊 Собираем данные...")
-            for i, u in enumerate(users):
-                print(f"\r   Обработка: {i + 1}/{len(users)}", end="")
-                mastery = predictor.get_user_mastery(db, u.user_id)
-                results.append((u.user_name, mastery['mastery_percentage']))
+                print("\n🔥 ТОП-10 ЛУЧШИХ СОТРУДНИКОВ:")
+                print("-" * 60)
+                print(f"{'№':<3} {'Имя':<15} {'Усвоение':<8} {'Фактов'}")
+                print("-" * 60)
 
-            results.sort(key=lambda x: x[1], reverse=True)
+                for i, u in enumerate(sorted_results[:10], 1):
+                    medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "  "
+                    status = "🔥" if u['mastery'] >= 50 else "👍" if u['mastery'] >= 30 else "👌"
+                    print(f"{medal} {i:<2} {u['name']:<15} {u['mastery']:6.1f}%   {u['total_items']}  {status}")
 
-            print("\n\n🔥 ТОП-10 ЛУЧШИХ СОТРУДНИКОВ:")
-            print("-" * 50)
-            print(f"{'№':<3} {'Имя':<15} {'Усвоение':<10} {'Статус'}")
-            print("-" * 50)
-
-            for i, (name, mastery) in enumerate(results[:10], 1):
-                medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "  "
-                status = "🔥" if mastery >= 80 else "👍" if mastery >= 60 else "👌"
-                print(f"{medal} {i:<2} {name:<15} {mastery:6.1f}%     {status}")
-
-            input("\n\nНажмите Enter для продолжения...")
+            input("\nНажмите Enter для продолжения...")
 
         elif choice == '4':
-            # Топ-10 худших
-            users = db.query(User).filter(User.user_name != 'admin').all()
-            results = []
+            # Топ-10 худших (из кэша)
+            if not user_results:
+                print("⚠️ Сначала выполните опцию 6 для загрузки данных")
+            else:
+                sorted_results = sorted(user_results, key=lambda x: x['mastery'])
 
-            print("\n📊 Собираем данные...")
-            for i, u in enumerate(users):
-                print(f"\r   Обработка: {i + 1}/{len(users)}", end="")
-                mastery = predictor.get_user_mastery(db, u.user_id)
-                results.append((u.user_name, mastery['mastery_percentage']))
+                print("\n⚠️ ТОП-10 ХУДШИХ (НУЖДАЮТСЯ В ПОМОЩИ):")
+                print("-" * 60)
+                print(f"{'№':<3} {'Имя':<15} {'Усвоение':<8} {'Фактов'}")
+                print("-" * 60)
 
-            results.sort(key=lambda x: x[1])
+                for i, u in enumerate(sorted_results[:10], 1):
+                    status = "🔴" if u['mastery'] < 10 else "🟠" if u['mastery'] < 20 else "🟡"
+                    print(f"  {i:<2} {u['name']:<15} {u['mastery']:6.1f}%   {u['total_items']}  {status}")
 
-            print("\n\n⚠️ ТОП-10 ХУДШИХ (НУЖДАЮТСЯ В ПОМОЩИ):")
-            print("-" * 50)
-            print(f"{'№':<3} {'Имя':<15} {'Усвоение':<10} {'Статус'}")
-            print("-" * 50)
-
-            for i, (name, mastery) in enumerate(results[:10], 1):
-                status = "🔴" if mastery < 20 else "🟠" if mastery < 40 else "🟡"
-                print(f"  {i:<2} {name:<15} {mastery:6.1f}%     {status}")
-
-            input("\n\nНажмите Enter для продолжения...")
+            input("\nНажмите Enter для продолжения...")
 
         elif choice == '5':
-            # Статистика по компании
-            users = db.query(User).filter(User.user_name != 'admin').all()
+            # Статистика по компании (из кэша)
+            if not user_results:
+                print("⚠️ Сначала выполните опцию 6 для загрузки данных")
+            else:
+                masteries = [u['mastery'] for u in user_results]
 
-            if not users:
-                print("❌ Нет пользователей для анализа")
-                continue
+                distribution = {
+                    '🔥 Отлично (>50%)': sum(1 for m in masteries if m >= 50),
+                    '👍 Хорошо (30-50%)': sum(1 for m in masteries if 30 <= m < 50),
+                    '👌 Средне (10-30%)': sum(1 for m in masteries if 10 <= m < 30),
+                    '🔴 Критично (<10%)': sum(1 for m in masteries if m < 10)
+                }
 
-            all_masteries = []
-            distribution = {
-                '🔥 Отлично (>80%)': 0,
-                '👍 Хорошо (60-80%)': 0,
-                '👌 Средне (40-60%)': 0,
-                '⚠️ Слабо (20-40%)': 0,
-                '🔴 Критично (<20%)': 0
-            }
-
-            print("\n📊 Собираем статистику...")
-            for i, u in enumerate(users):
-                print(f"\r   Обработка: {i + 1}/{len(users)}", end="")
-                mastery = predictor.get_user_mastery(db, u.user_id)
-                m_pct = mastery['mastery_percentage']
-                all_masteries.append(m_pct)
-
-                if m_pct >= 80:
-                    distribution['🔥 Отлично (>80%)'] += 1
-                elif m_pct >= 60:
-                    distribution['👍 Хорошо (60-80%)'] += 1
-                elif m_pct >= 40:
-                    distribution['👌 Средне (40-60%)'] += 1
-                elif m_pct >= 20:
-                    distribution['⚠️ Слабо (20-40%)'] += 1
-                else:
-                    distribution['🔴 Критично (<20%)'] += 1
-
-            avg_mastery = np.mean(all_masteries) if all_masteries else 0
-
-            print("\n\n" + "=" * 70)
-            print("🏢 СТАТИСТИКА ПО КОМПАНИИ")
-            print("=" * 70)
-            print(f"""
-👥  Всего сотрудников: {len(users)}
-📊  Среднее усвоение: {avg_mastery:.1f}%
-📈  Медиана: {np.median(all_masteries):.1f}%
-📉  Минимум: {min(all_masteries):.1f}%
-📈  Максимум: {max(all_masteries):.1f}%
+                print("\n" + "=" * 70)
+                print("🏢 СТАТИСТИКА ПО КОМПАНИИ")
+                print("=" * 70)
+                print(f"""
+👥  Всего сотрудников: {len(user_results)}
+📊  Среднее усвоение: {np.mean(masteries):.1f}%
+📈  Медиана: {np.median(masteries):.1f}%
+📉  Минимум: {min(masteries):.1f}%
+📈  Максимум: {max(masteries):.1f}%
 
 📊 РАСПРЕДЕЛЕНИЕ ПО УРОВНЯМ:
 {'-' * 50}""")
 
-            for level, count in distribution.items():
-                if count > 0:
-                    percentage = (count / len(users)) * 100
-                    bar = "█" * int(percentage / 2)
-                    print(f"{level:20} : {count:2} чел. ({percentage:4.1f}%) {bar}")
+                for level, count in distribution.items():
+                    if count > 0:
+                        percentage = (count / len(user_results)) * 100
+                        bar = "█" * int(percentage / 2)
+                        print(f"{level:20} : {count:2} чел. ({percentage:4.1f}%) {bar}")
 
             input("\n\nНажмите Enter для продолжения...")
 
