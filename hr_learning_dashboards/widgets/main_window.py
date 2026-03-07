@@ -478,6 +478,82 @@ class MainWindow(QMainWindow):
         info_label.setWordWrap(True)
         bottom_layout.addWidget(info_label)
 
+        # === ПРОГНОЗ УСВОЕНИЯ ===
+        forecast_widget = QWidget()
+        forecast_layout = QVBoxLayout(forecast_widget)
+        forecast_layout.setContentsMargins(0, 20, 0, 0)
+
+        forecast_title = QLabel("🔮 Прогноз усвоения на 30 дней")
+        forecast_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #26394D; margin-top: 20px;")
+        forecast_layout.addWidget(forecast_title)
+
+        # Контейнер для графика прогноза
+        self.forecast_chart = QChart()
+        self.forecast_chart.setAnimationOptions(QChart.SeriesAnimations)
+        self.forecast_chart.setTheme(QChart.ChartThemeLight)
+        self.forecast_chart.setBackgroundVisible(False)
+
+        # Серия для исторических данных
+        self.historical_series = QLineSeries()
+        self.historical_series.setName("Исторические данные")
+        pen_hist = QPen(QColor(35, 88, 140))  # #23588C
+        pen_hist.setWidth(2)
+        self.historical_series.setPen(pen_hist)
+
+        # Серия для прогноза
+        self.forecast_series = QLineSeries()
+        self.forecast_series.setName("Прогноз")
+        pen_forecast = QPen(QColor(0, 102, 204))  # #0066CC
+        pen_forecast.setWidth(2)
+        pen_forecast.setStyle(Qt.DashLine)  # пунктирная линия
+        self.forecast_series.setPen(pen_forecast)
+
+        self.forecast_chart.addSeries(self.historical_series)
+        self.forecast_chart.addSeries(self.forecast_series)
+
+        # Оси
+        axis_x_forecast = QDateTimeAxis()
+        axis_x_forecast.setFormat("dd.MM")
+        axis_x_forecast.setTitleText("Дата")
+
+        axis_y_forecast = QValueAxis()
+        axis_y_forecast.setRange(0, 100)
+        axis_y_forecast.setTitleText("Усвоение (%)")
+
+        self.forecast_chart.addAxis(axis_x_forecast, Qt.AlignBottom)
+        self.forecast_chart.addAxis(axis_y_forecast, Qt.AlignLeft)
+        self.historical_series.attachAxis(axis_x_forecast)
+        self.historical_series.attachAxis(axis_y_forecast)
+        self.forecast_series.attachAxis(axis_x_forecast)
+        self.forecast_series.attachAxis(axis_y_forecast)
+
+        forecast_chart_view = QChartView(self.forecast_chart)
+        forecast_chart_view.setMinimumHeight(250)
+        forecast_chart_view.setMaximumHeight(350)
+        forecast_chart_view.setRenderHint(QPainter.Antialiasing)
+        forecast_layout.addWidget(forecast_chart_view)
+
+        # Кнопка обновления прогноза
+        self.refresh_forecast_btn = QPushButton("🔮 Обновить прогноз")
+        self.refresh_forecast_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #23588C;
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 5px;
+                font-size: 12px;
+                margin-top: 5px;
+            }
+            QPushButton:hover {
+                background-color: #0066CC;
+            }
+        """)
+        self.refresh_forecast_btn.clicked.connect(self.update_forecast)
+        forecast_layout.addWidget(self.refresh_forecast_btn)
+
+        bottom_layout.addWidget(forecast_widget)
+
         # Финальный отступ
         bottom_layout.addSpacing(30)
 
@@ -720,51 +796,6 @@ class MainWindow(QMainWindow):
             print(f"❌ Ошибка загрузки данных: {e}")
             QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить данные: {str(e)}")
 
-    def load_ml_data_for_page(self):
-        """Загружает ML данные только при нажатии кнопки"""
-        cache_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "ml",
-            "user_cache.pkl"
-        )
-
-        print(f"🔍 Ищем кэш по пути: {cache_path}")
-
-        if not os.path.exists(cache_path):
-            QMessageBox.warning(
-                self,
-                "Нет данных",
-                f"Кэш не найден. Сначала обновите кэш в разделе 'Рейтинг сотрудников'"
-            )
-            return
-
-        try:
-            # Загружаем кэш
-            with open(cache_path, 'rb') as f:
-                self.user_cache = pickle.load(f)
-
-            print(f"✅ Загружено {len(self.user_cache)} записей")
-
-            # Загружаем пользователей в комбобокс
-            self.ml_user_combo.clear()
-            for user in self.user_cache:
-                # Используем user_id напрямую
-                user_id = str(user['user_id'])
-                user_name = user['name'].split()[0]  # Берём только имя
-                self.ml_user_combo.addItem(f"{user_name} (ID: {user_id})", user_id)
-
-            # Обновляем статистику
-            self.update_ml_stats()
-
-            # Если есть пользователи, загружаем первого
-            if self.ml_user_combo.count() > 0:
-                self.load_ml_user_data()
-
-        except Exception as e:
-            QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить данные: {str(e)}")
-            import traceback
-            traceback.print_exc()
-
     def update_average_chart(self):
         """Обновляет график среднего усвоения по компании"""
         if not hasattr(self, 'user_cache') or not self.user_cache:
@@ -911,3 +942,114 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить данные: {str(e)}")
 
+    def update_forecast(self):
+        """Обновляет прогноз усвоения на 30 дней"""
+        try:
+            # Очищаем старые данные
+            self.historical_series.clear()
+            self.forecast_series.clear()
+
+            # Получаем исторические данные за последние 30 дней
+            db_gen = get_db()
+            db = next(db_gen)
+
+            query = text("""
+                SELECT 
+                    DATE(timestamp) as date,
+                    AVG(outcome) * 100 as daily_avg
+                FROM interactions
+                WHERE timestamp > NOW() - INTERVAL '30 days'
+                GROUP BY DATE(timestamp)
+                ORDER BY date
+            """)
+
+            df = pd.read_sql(query, db.bind)
+            db.close()
+
+            if df.empty:
+                # Если нет реальных данных, используем тестовые
+                self.generate_test_forecast()
+                return
+
+            from PyQt5.QtCore import QDateTime
+            import numpy as np
+            from sklearn.linear_model import LinearRegression
+
+            # Заполняем исторические данные
+            dates = []
+            values = []
+
+            for _, row in df.iterrows():
+                date_str = str(row['date'])
+                qdatetime = QDateTime.fromString(date_str, "yyyy-MM-dd")
+                if qdatetime.isValid():
+                    timestamp = qdatetime.toMSecsSinceEpoch()
+                    self.historical_series.append(timestamp, row['daily_avg'])
+                    dates.append(timestamp)
+                    values.append(row['daily_avg'])
+
+            if len(values) < 5:
+                self.generate_test_forecast()
+                return
+
+            # Строим простую модель прогноза (линейная регрессия)
+            X = np.array(range(len(values))).reshape(-1, 1)
+            y = np.array(values)
+
+            model = LinearRegression()
+            model.fit(X, y)
+
+            # Прогноз на 30 дней вперёд
+            last_date = QDateTime.fromMSecsSinceEpoch(dates[-1])
+
+            for i in range(1, 31):
+                next_date = last_date.addDays(i)
+                pred_value = model.predict([[len(values) + i - 1]])[0]
+                pred_value = max(0, min(100, pred_value))  # ограничиваем 0-100
+                self.forecast_series.append(next_date.toMSecsSinceEpoch(), pred_value)
+
+            # Обновляем заголовок
+            trend = "рост" if model.coef_[0] > 0 else "снижение"
+            self.forecast_chart.setTitle(f"Прогноз: {trend} усвоения на {abs(model.coef_[0]):.1f}% в месяц")
+
+            QMessageBox.information(self, "Успех", "Прогноз обновлён")
+
+        except Exception as e:
+            print(f"Ошибка прогноза: {e}")
+            self.generate_test_forecast()
+
+    def generate_test_forecast(self):
+        """Генерирует тестовый прогноз (для демо)"""
+        self.historical_series.clear()
+        self.forecast_series.clear()
+
+        from datetime import datetime, timedelta
+        import random
+        from PyQt5.QtCore import QDateTime
+
+        # Исторические данные (30 дней)
+        base_date = datetime.now() - timedelta(days=30)
+        hist_values = []
+
+        for i in range(30):
+            date = base_date + timedelta(days=i)
+            qdate = QDateTime(date)
+            # Плавно меняющиеся значения с трендом
+            value = 60 + i * 0.2 + random.uniform(-3, 3)
+            value = max(40, min(85, value))
+            self.historical_series.append(qdate.toMSecsSinceEpoch(), value)
+            hist_values.append(value)
+
+        # Прогноз (30 дней)
+        last_date = QDateTime(datetime.now())
+        last_value = hist_values[-1]
+        trend = 0.15  # небольшой рост
+
+        for i in range(1, 31):
+            next_date = last_date.addDays(i)
+            pred_value = last_value + trend * i + random.uniform(-2, 2)
+            pred_value = max(40, min(90, pred_value))
+            self.forecast_series.append(next_date.toMSecsSinceEpoch(), pred_value)
+
+        self.forecast_chart.setTitle("🔮 Прогноз усвоения (тестовые данные)")
+        QMessageBox.information(self, "Демо", "Показан тестовый прогноз (нет реальных данных)")
