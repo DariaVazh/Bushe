@@ -1,9 +1,10 @@
 # hr_learning_dashboards/widgets/main_window.py
 import sys
 import os
+import pandas as pd
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QPushButton, QLabel,
-                             QStackedWidget, QFrame, QMessageBox, QComboBox, QScrollArea)
+                             QStackedWidget, QFrame, QMessageBox, QComboBox, QScrollArea, QListWidget)
 from PyQt5.QtCore import Qt
 from sqlalchemy import text
 from PyQt5.QtWidgets import QTabWidget, QWidget, QVBoxLayout
@@ -15,8 +16,8 @@ from .learning_curve_chart import LearningCurveChart
 
 import pickle
 import numpy as np
-from PyQt5.QtChart import QChart, QPieSeries, QChartView, QPieSlice
-from PyQt5.QtGui import QPainter, QColor
+from PyQt5.QtChart import QChart, QPieSeries, QChartView, QPieSlice, QDateTimeAxis, QValueAxis, QLineSeries
+from PyQt5.QtGui import QPainter, QColor, QPen
 
 
 class MainWindow(QMainWindow):
@@ -207,6 +208,8 @@ class MainWindow(QMainWindow):
             }
         """)
 
+        scroll_area.setMinimumHeight(800)
+
         # Создаём контейнер для всего контента
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
@@ -298,23 +301,25 @@ class MainWindow(QMainWindow):
         separator.setStyleSheet("background-color: #26394D; height: 2px; margin: 10px 0;")
         content_layout.addWidget(separator)
 
-        # === НИЖНЯЯ ЧАСТЬ (кривая обучения) ===
+        # === НИЖНЯЯ ЧАСТЬ (графики и списки) ===
         bottom_widget = QWidget()
         bottom_layout = QVBoxLayout(bottom_widget)
         bottom_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_layout.setSpacing(25)
 
-        bottom_title = QLabel("📈 Кривая обучения (по всем сотрудникам)")
-        bottom_title.setStyleSheet("font-size: 20px; font-weight: bold; color: #26394D; margin-top: 10px;")
-        bottom_layout.addWidget(bottom_title)
+        # --- Первый график (индивидуальный) ---
+        individual_title = QLabel("📈 Индивидуальная кривая обучения")
+        individual_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #26394D; margin-top: 20px;")
+        bottom_layout.addWidget(individual_title)
 
         # Выбор пользователя для графика
         user_select_widget = QWidget()
         user_select_layout = QHBoxLayout(user_select_widget)
-        user_select_layout.setContentsMargins(0, 10, 0, 10)
+        user_select_layout.setContentsMargins(0, 10, 0, 15)
 
         user_select_layout.addWidget(QLabel("Выберите сотрудника:"))
         self.ml_user_combo = QComboBox()
-        self.ml_user_combo.setMinimumWidth(200)
+        self.ml_user_combo.setMinimumWidth(250)
         user_select_layout.addWidget(self.ml_user_combo)
 
         self.ml_refresh_btn = QPushButton("🔄 Показать")
@@ -324,10 +329,159 @@ class MainWindow(QMainWindow):
         user_select_layout.addStretch()
         bottom_layout.addWidget(user_select_widget)
 
-        # Добавляем график (новый экземпляр для ML страницы)
+        # Индивидуальный график
         self.ml_chart = LearningCurveChart()
-        self.ml_chart.setMaximumHeight(300)
+        self.ml_chart.setMinimumHeight(300)
+        self.ml_chart.setMaximumHeight(400)
         bottom_layout.addWidget(self.ml_chart)
+
+        # Отступ
+        bottom_layout.addSpacing(30)
+
+        # --- Второй график (среднее по компании) ---
+        average_title = QLabel("📊 Среднее усвоение по компании")
+        average_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #26394D;")
+        bottom_layout.addWidget(average_title)
+
+        # Контейнер для графика среднего усвоения
+        self.avg_chart = QChart()
+        self.avg_chart.setAnimationOptions(QChart.SeriesAnimations)
+        self.avg_chart.setTheme(QChart.ChartThemeLight)
+        self.avg_chart.setBackgroundVisible(False)
+
+        self.avg_series = QLineSeries()
+        self.avg_series.setName("Среднее усвоение")
+        pen = QPen(QColor(35, 88, 140))
+        pen.setWidth(3)
+        self.avg_series.setPen(pen)
+
+        self.avg_chart.addSeries(self.avg_series)
+
+        # Оси
+        axis_x = QDateTimeAxis()
+        axis_x.setFormat("dd.MM")
+        axis_x.setTitleText("Дата")
+
+        axis_y = QValueAxis()
+        axis_y.setRange(0, 100)
+        axis_y.setTitleText("Усвоение (%)")
+
+        self.avg_chart.addAxis(axis_x, Qt.AlignBottom)
+        self.avg_chart.addAxis(axis_y, Qt.AlignLeft)
+        self.avg_series.attachAxis(axis_x)
+        self.avg_series.attachAxis(axis_y)
+
+        avg_chart_view = QChartView(self.avg_chart)
+        avg_chart_view.setMinimumHeight(250)
+        avg_chart_view.setMaximumHeight(350)
+        avg_chart_view.setRenderHint(QPainter.Antialiasing)
+        bottom_layout.addWidget(avg_chart_view)
+
+        # Кнопка обновления среднего графика
+        self.refresh_avg_btn = QPushButton("🔄 Обновить среднее")
+        self.refresh_avg_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #23588C;
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 5px;
+                font-size: 12px;
+                margin-top: 5px;
+                margin-bottom: 15px;
+            }
+            QPushButton:hover {
+                background-color: #0066CC;
+            }
+        """)
+        self.refresh_avg_btn.clicked.connect(self.update_average_chart)
+        bottom_layout.addWidget(self.refresh_avg_btn)
+
+        # === ДВА СПИСКА ВОПРОСОВ (СЛОЖНЫЕ И ПРОСТЫЕ) ===
+        questions_widget = QWidget()
+        questions_layout = QHBoxLayout(questions_widget)
+        questions_layout.setContentsMargins(0, 20, 0, 20)
+        questions_layout.setSpacing(20)
+
+        # Левый список - сложные вопросы
+        hard_frame = QFrame()
+        hard_frame.setStyleSheet("""
+            QFrame {
+                background-color: #FFFFFE;
+                border-radius: 10px;
+                padding: 15px;
+                border: 1px solid #775928;
+            }
+        """)
+        hard_layout = QVBoxLayout(hard_frame)
+
+        hard_title = QLabel("🔴 Топ-5 сложных вопросов")
+        hard_title.setStyleSheet("font-size: 16px; font-weight: bold; color: #775928; margin-bottom: 10px;")
+        hard_layout.addWidget(hard_title)
+
+        self.hard_list = QListWidget()
+        self.hard_list.setStyleSheet("""
+            QListWidget {
+                border: none;
+                background-color: transparent;
+                font-size: 14px;
+            }
+            QListWidget::item {
+                padding: 8px;
+                border-bottom: 1px solid #eee;
+            }
+        """)
+        hard_layout.addWidget(self.hard_list)
+
+        # Правый список - простые вопросы
+        easy_frame = QFrame()
+        easy_frame.setStyleSheet("""
+            QFrame {
+                background-color: #FFFFFE;
+                border-radius: 10px;
+                padding: 15px;
+                border: 1px solid #23588C;
+            }
+        """)
+        easy_layout = QVBoxLayout(easy_frame)
+
+        easy_title = QLabel("🟢 Топ-5 простых вопросов")
+        easy_title.setStyleSheet("font-size: 16px; font-weight: bold; color: #23588C; margin-bottom: 10px;")
+        easy_layout.addWidget(easy_title)
+
+        self.easy_list = QListWidget()
+        self.easy_list.setStyleSheet("""
+            QListWidget {
+                border: none;
+                background-color: transparent;
+                font-size: 14px;
+            }
+            QListWidget::item {
+                padding: 8px;
+                border-bottom: 1px solid #eee;
+            }
+        """)
+        easy_layout.addWidget(self.easy_list)
+
+        questions_layout.addWidget(hard_frame)
+        questions_layout.addWidget(easy_frame)
+
+        bottom_layout.addWidget(questions_widget)
+
+        # Пояснительный текст
+        info_label = QLabel(
+            "📌 Сложные вопросы — с низким процентом правильных ответов (<30%)\n"
+            "📌 Простые вопросы — с высоким процентом правильных ответов (>70%)"
+        )
+        info_label.setStyleSheet(
+            "color: #775928; font-size: 12px; padding: 10px; background-color: #f5f5f5; border-radius: 5px;")
+        info_label.setWordWrap(True)
+        bottom_layout.addWidget(info_label)
+
+        # Финальный отступ
+        bottom_layout.addSpacing(30)
+
+        content_layout.addWidget(bottom_widget)
 
         content_layout.addWidget(bottom_widget)
 
@@ -347,6 +501,9 @@ class MainWindow(QMainWindow):
         """Переключает страницу и обновляет стили кнопок"""
         # Переключаем страницу
         self.stacked_widget.setCurrentIndex(index)
+
+        if index == 2 and hasattr(self, 'user_cache') and self.user_cache:
+            self.update_average_chart()
 
         # Сбрасываем стили всех кнопок
         default_style = """
@@ -607,3 +764,150 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить данные: {str(e)}")
             import traceback
             traceback.print_exc()
+
+    def update_average_chart(self):
+        """Обновляет график среднего усвоения по компании"""
+        if not hasattr(self, 'user_cache') or not self.user_cache:
+            QMessageBox.warning(self, "Нет данных", "Сначала загрузите ML данные")
+            return
+
+        try:
+            # Очищаем старые данные
+            self.avg_series.clear()
+
+            # Получаем данные из БД за последние 30 дней
+            db_gen = get_db()
+            db = next(db_gen)
+
+            # Запрос для получения среднего усвоения по дням
+            from sqlalchemy import text
+            query = text("""
+                SELECT 
+                    DATE(timestamp) as date,
+                    AVG(outcome) as daily_avg
+                FROM interactions
+                WHERE timestamp > NOW() - INTERVAL '30 days'
+                GROUP BY DATE(timestamp)
+                ORDER BY date
+            """)
+
+            df = pd.read_sql(query, db.bind)
+            db.close()
+
+            if df.empty:
+                QMessageBox.warning(self, "Нет данных", "Нет данных за последние 30 дней")
+                return
+
+            # Заполняем серию
+            from PyQt5.QtCore import QDateTime
+
+            for _, row in df.iterrows():
+                date_str = str(row['date'])
+                qdatetime = QDateTime.fromString(date_str, "yyyy-MM-dd")
+                if qdatetime.isValid():
+                    timestamp = qdatetime.toMSecsSinceEpoch()
+                    self.avg_series.append(timestamp, row['daily_avg'] * 100)
+
+            # Обновляем диапазон оси Y
+            max_value = df['daily_avg'].max() * 100
+            min_value = df['daily_avg'].min() * 100
+            padding = (max_value - min_value) * 0.1
+            axis_y = self.avg_chart.axes(Qt.Vertical)[0]
+            axis_y.setRange(max(0, min_value - padding), min(100, max_value + padding))
+
+            # Обновляем заголовок
+            self.avg_chart.setTitle(f"Среднее усвоение: {df['daily_avg'].mean() * 100:.1f}%")
+
+            QMessageBox.information(self, "Успех", "График среднего усвоения обновлён")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Не удалось обновить график: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+    def load_questions_lists(self):
+        """Загружает топ-5 сложных и простых вопросов"""
+        try:
+            db_gen = get_db()
+            db = next(db_gen)
+
+            # Получаем статистику по вопросам
+            query = text("""
+                SELECT 
+                    ki.item_id,
+                    ki.domain,
+                    COUNT(i.interaction_id) as attempts,
+                    AVG(i.outcome) * 100 as success_rate
+                FROM knowledge_items ki
+                JOIN interactions i ON ki.item_id = i.item_id
+                GROUP BY ki.item_id, ki.domain
+                HAVING COUNT(i.interaction_id) > 10
+                ORDER BY success_rate
+            """)
+
+            df = pd.read_sql(query, db.bind)
+            db.close()
+
+            if df.empty:
+                return
+
+            # Очищаем списки
+            self.hard_list.clear()
+            self.easy_list.clear()
+
+            # Сложные вопросы (самый низкий процент)
+            hard_questions = df.head(5)
+            for _, row in hard_questions.iterrows():
+                item_text = f"❓ {row['domain']} (вопрос #{row['item_id']}) — {row['success_rate']:.1f}%"
+                self.hard_list.addItem(item_text)
+
+            # Простые вопросы (самый высокий процент)
+            easy_questions = df.tail(5).iloc[::-1]  # в обратном порядке
+            for _, row in easy_questions.iterrows():
+                item_text = f"✅ {row['domain']} (вопрос #{row['item_id']}) — {row['success_rate']:.1f}%"
+                self.easy_list.addItem(item_text)
+
+        except Exception as e:
+            print(f"Ошибка загрузки вопросов: {e}")
+
+    def load_ml_data_for_page(self):
+        """Загружает ML данные только при нажатии кнопки"""
+        cache_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "ml",
+            "user_cache.pkl"
+        )
+
+        if not os.path.exists(cache_path):
+            QMessageBox.warning(
+                self,
+                "Нет данных",
+                "Кэш не найден. Сначала обновите кэш в разделе 'Рейтинг сотрудников'"
+            )
+            return
+
+        try:
+            # Загружаем кэш
+            with open(cache_path, 'rb') as f:
+                self.user_cache = pickle.load(f)
+
+            # Загружаем пользователей в комбобокс
+            self.ml_user_combo.clear()
+            for user in self.user_cache:
+                user_id = str(user['user_id'])
+                user_name = user['name'].split()[0]
+                self.ml_user_combo.addItem(f"{user_name} (ID: {user_id})", user_id)
+
+            # Обновляем статистику
+            self.update_ml_stats()
+
+            # Загружаем списки вопросов
+            self.load_questions_lists()
+
+            # Если есть пользователи, загружаем первого
+            if self.ml_user_combo.count() > 0:
+                self.load_ml_user_data()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить данные: {str(e)}")
+
