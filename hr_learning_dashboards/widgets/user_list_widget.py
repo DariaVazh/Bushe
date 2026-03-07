@@ -14,8 +14,9 @@ from PyQt5.QtChart import QChart, QPieSeries, QChartView, QPieSlice
 from Bushe.learning_platform_db.queries import AnalyticsQueries
 from Bushe.learning_platform_db.database import get_db
 from .user_details_dialog import UserDetailsDialog
-
+import os
 import numpy as np
+import pickle
 
 class UserListWidget(QWidget):
     """Виджет со списком всех пользователей"""
@@ -100,16 +101,40 @@ class UserListWidget(QWidget):
     def load_users(self):
         """Загружает список пользователей из БД"""
         try:
+            print("🔄 Загружаю пользователей из БД...")
             db_gen = get_db()
             db = next(db_gen)
 
             self.users = AnalyticsQueries.get_all_users(db)
             db.close()
 
+            print(f"✅ Загружено {len(self.users)} пользователей")
+
+            # ПОСМОТРИМ, ЧТО В ПЕРВОМ ПОЛЬЗОВАТЕЛЕ
+            if self.users:
+                print("🔍 Пример данных первого пользователя:")
+                for key, value in self.users[0].items():
+                    print(f"   {key}: {value}")
+
             self.update_list()
 
+            # СОХРАНЯЕМ КЭШ
+            cache_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "ml",
+                "user_cache.pkl"
+            )
+
+            print(f"💾 Сохраняю кэш в: {cache_path}")
+            os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+
+            with open(cache_path, 'wb') as f:
+                pickle.dump(self.users, f)
+
+            print(f"✅ Кэш сохранён!")
+
         except Exception as e:
-            print(f"Ошибка загрузки пользователей: {e}")
+            print(f"❌ Ошибка: {e}")
             QMessageBox.warning(self, "Ошибка", f"Не удалось загрузить список пользователей")
 
     def update_list(self):
@@ -159,119 +184,3 @@ class UserListWidget(QWidget):
         except Exception as e:
             print(f"Ошибка загрузки деталей: {e}")
             QMessageBox.warning(self, "Ошибка", "Не удалось загрузить детальную информацию")
-
-    def update_ml_stats(self):
-        """Обновляет статистику (вызывается по кнопке)"""
-        print("🔄 Обновление ML статистики...")
-
-        # Очищаем старые данные
-        self.clear_layout(self.stats_layout)
-        self.pie_series.clear()
-
-        # Проверяем наличие кэша
-        if not hasattr(self, 'user_cache') or not self.user_cache:
-            # Пробуем загрузить кэш
-            self.load_ml_model()
-
-            if not self.user_cache:
-                QMessageBox.warning(
-                    self,
-                    "Нет данных",
-                    "Кэш пользователей пуст.\nСначала обновите кэш в разделе 'Рейтинг сотрудников' (кнопка 'Обновить')."
-                )
-                self.show_no_data_message()
-                return
-
-        try:
-            # Собираем статистику
-            masteries = [u['mastery'] for u in self.user_cache]
-
-            total = len(self.user_cache)
-            avg_mastery = np.mean(masteries)
-            median_mastery = np.median(masteries)
-            min_mastery = min(masteries)
-            max_mastery = max(masteries)
-
-            # Распределение по уровням
-            levels = {
-                '🔥 Отлично (>50%)': sum(1 for m in masteries if m >= 50),
-                '👍 Хорошо (30-50%)': sum(1 for m in masteries if 30 <= m < 50),
-                '👌 Средне (10-30%)': sum(1 for m in masteries if 10 <= m < 30),
-                '🔴 Критично (<10%)': sum(1 for m in masteries if m < 10)
-            }
-
-            # Добавляем статистику (как в предыдущем коде)
-            stats_data = [
-                ("👥 Всего сотрудников:", f"{total} чел.", "#26394D"),
-                ("📊 Среднее усвоение:", f"{avg_mastery:.1f}%", "#23588C"),
-                ("📈 Медиана:", f"{median_mastery:.1f}%", "#0066CC"),
-                ("📉 Минимум:", f"{min_mastery:.1f}%", "#775928"),
-                ("📈 Максимум:", f"{max_mastery:.1f}%", "#26394D"),
-            ]
-
-            for label_text, value_text, color in stats_data:
-                row = QWidget()
-                row_layout = QHBoxLayout(row)
-                row_layout.setContentsMargins(0, 0, 0, 0)
-
-                label = QLabel(label_text)
-                label.setStyleSheet("font-size: 16px; font-weight: bold; color: #26394D;")
-
-                value = QLabel(value_text)
-                value.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {color};")
-                value.setAlignment(Qt.AlignRight)
-
-                row_layout.addWidget(label)
-                row_layout.addStretch()
-                row_layout.addWidget(value)
-
-                self.stats_layout.addWidget(row)
-
-            # Разделитель
-            line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setStyleSheet("background-color: #26394D; height: 1px;")
-            self.stats_layout.addWidget(line)
-
-            # Добавляем уровни и строим диаграмму
-            level_colors = {
-                '🔥 Отлично (>50%)': QColor(35, 88, 140),  # #23588C
-                '👍 Хорошо (30-50%)': QColor(0, 102, 204),  # #0066CC
-                '👌 Средне (10-30%)': QColor(119, 89, 40),  # #775928
-                '🔴 Критично (<10%)': QColor(38, 57, 77)  # #26394D
-            }
-
-            for level_name, count in levels.items():
-                if count > 0:
-                    percentage = (count / total) * 100
-
-                    row = QWidget()
-                    row_layout = QHBoxLayout(row)
-                    row_layout.setContentsMargins(0, 0, 0, 0)
-
-                    level_label = QLabel(level_name)
-                    level_label.setStyleSheet("font-size: 14px; color: #26394D;")
-
-                    count_label = QLabel(f"{count} чел. ({percentage:.1f}%)")
-                    count_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #23588C;")
-                    count_label.setAlignment(Qt.AlignRight)
-
-                    row_layout.addWidget(level_label)
-                    row_layout.addStretch()
-                    row_layout.addWidget(count_label)
-
-                    self.stats_layout.addWidget(row)
-
-                    # Добавляем сегмент в диаграмму
-                    slice_ = self.pie_series.append(level_name, count)
-                    slice_.setColor(level_colors[level_name])
-                    slice_.setLabelVisible(True)
-                    slice_.setLabelPosition(QPieSlice.LabelOutside)
-                    slice_.setLabelColor(QColor(38, 57, 77))
-
-            QMessageBox.information(self, "Успех", "Статистика успешно обновлена!")
-
-        except Exception as e:
-            print(f"Ошибка при обновлении статистики: {e}")
-            QMessageBox.critical(self, "Ошибка", f"Не удалось обновить статистику: {str(e)}")
-            self.show_no_data_message()
