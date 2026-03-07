@@ -2,8 +2,8 @@
 import sys
 import os
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
-                             QHBoxLayout, QLabel, QComboBox,
-                             QPushButton, QMessageBox, QStatusBar)
+                             QHBoxLayout, QPushButton, QLabel,
+                             QStackedWidget, QFrame, QMessageBox)
 from PyQt5.QtCore import Qt
 from sqlalchemy import text
 from PyQt5.QtWidgets import QTabWidget, QWidget, QVBoxLayout
@@ -18,117 +18,217 @@ class MainWindow(QMainWindow):
     def __init__(self, user_data=None):
         super().__init__()
 
-        self.user_data = user_data or {'username': 'Гость', 'role': 'guest'}
+        self.user_data = user_data or {'username': 'Гость', 'role': 'guest', 'full_name': 'Гость'}
 
         self.setWindowTitle(f"HR Learning Dashboard - {self.user_data['full_name']}")
+        self.showMaximized()
 
-        # ПОЛНОЭКРАННЫЙ РЕЖИМ
-        self.showMaximized()  # вместо setGeometry
-
-        # Или если нужен реальный fullscreen (без заголовка):
-        # self.showFullScreen()
-
-        # Добавляем статус бар
-        self.statusBar().showMessage(f"Пользователь: {self.user_data['full_name']} | Роль: {self.user_data['role']}")
-        # Добавляем статус бар
+        # Статус бар
         self.statusBar().showMessage(f"Пользователь: {self.user_data['full_name']} | Роль: {self.user_data['role']}")
 
-        central = QWidget()
-        self.setCentralWidget(central)
+        # ===== СОЗДАЁМ ЦЕНТРАЛЬНЫЙ ВИДЖЕТ =====
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
 
-        self.layout = QVBoxLayout(central)
-        self.layout.setContentsMargins(20, 20, 20, 20)
-        self.layout.setSpacing(15)
+        # ===== ГЛАВНЫЙ ГОРИЗОНТАЛЬНЫЙ LAYOUT =====
+        main_layout = QHBoxLayout(central_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        self.create_top_panel()
-        self.create_charts()
+        # ===== ЛЕВАЯ ПАНЕЛЬ (МЕНЮ) =====
+        self.menu_panel = QFrame()
+        self.menu_panel.setFixedWidth(350)
+        self.menu_panel.setStyleSheet("""
+            QFrame {
+                background-color: #FFFFEF;
+                border: none;
+            }
+        """)
 
-        self.load_users()
+        # Layout для меню
+        menu_layout = QVBoxLayout(self.menu_panel)
+        menu_layout.setContentsMargins(10, 20, 10, 20)
+        menu_layout.setSpacing(10)
 
-    def create_top_panel(self):
-        panel = QWidget()
-        panel_layout = QHBoxLayout(panel)
-        panel_layout.setContentsMargins(0, 0, 0, 0)
+        # Заголовок меню
+        menu_title = QLabel(f"{self.user_data['full_name']}")
+        menu_title.setStyleSheet("color: #26394D; font-size: 22px; font-weight: bold; padding: 10px;")
+        menu_title.setAlignment(Qt.AlignCenter)
+        menu_layout.addWidget(menu_title)
 
-        title = QLabel(f"📊 Аналитика обучения")
-        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #ffffff;")
-        panel_layout.addWidget(title)
-
-        panel_layout.addStretch()
-
-        # Добавляем метку с ролью
+        # Роль пользователя
         role_label = QLabel(f"[{self.user_data['role']}]")
-        role_label.setStyleSheet("color: #3498db; font-size: 14px;")
-        panel_layout.addWidget(role_label)
+        role_label.setStyleSheet("color: #26394D; font-size: 14px;")
+        role_label.setAlignment(Qt.AlignCenter)
+        menu_layout.addWidget(role_label)
 
-        panel_layout.addWidget(QLabel("Сотрудник:"))
-        self.user_combo = QComboBox()
-        self.user_combo.setMinimumWidth(200)
-        self.user_combo.currentIndexChanged.connect(self.on_user_changed)
-        panel_layout.addWidget(self.user_combo)
+        # Линия-разделитель
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setStyleSheet("background-color: #775928;")
+        menu_layout.addWidget(line)
 
-        self.refresh_btn = QPushButton("🔄 Обновить")
-        self.refresh_btn.clicked.connect(self.refresh_data)
-        panel_layout.addWidget(self.refresh_btn)
+        # Кнопки меню
+        self.btn_page1 = self.create_menu_button("Кривая обучения")
+        self.btn_page2 = self.create_menu_button("Рейтинг сотрудников")
+        self.btn_page3 = self.create_menu_button("ML Аналитика")
+
+        menu_layout.addWidget(self.btn_page1)
+        menu_layout.addWidget(self.btn_page2)
+        menu_layout.addWidget(self.btn_page3)
 
         # Кнопка выхода
-        self.logout_btn = QPushButton("🚪 Выйти")
-        self.logout_btn.clicked.connect(self.logout)
-        panel_layout.addWidget(self.logout_btn)
+        menu_layout.addStretch()
 
-        self.layout.addWidget(panel)
+        self.btn_logout = QPushButton("Выйти")
+        self.btn_logout.setStyleSheet("""
+            QPushButton {
+                background-color: #23588C;
+                color: white;
+                border: none;
+                padding: 12px;
+                font-size: 14px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #c0392b;
+            }
+        """)
+        self.btn_logout.clicked.connect(self.logout)
+        menu_layout.addWidget(self.btn_logout)
 
-    def create_charts(self):
+        # ===== ПРАВАЯ ПАНЕЛЬ (СТРАНИЦЫ) =====
+        self.stacked_widget = QStackedWidget()
+        self.stacked_widget.setStyleSheet("""
+            QStackedWidget {
+                background-color: #FFFFEF;
+            }
+        """)
+
+        # Создаём страницы
+        self.create_pages()
+
+        # Добавляем страницы в стек
+        self.stacked_widget.addWidget(self.page1)
+        self.stacked_widget.addWidget(self.page2)
+        self.stacked_widget.addWidget(self.page3)
+
+        # ===== ДОБАВЛЯЕМ ПАНЕЛИ В ГЛАВНЫЙ LAYOUT =====
+        main_layout.addWidget(self.menu_panel)
+        main_layout.addWidget(self.stacked_widget, 1)
+
+        # ===== ПОДКЛЮЧАЕМ КНОПКИ =====
+        self.btn_page1.clicked.connect(lambda: self.switch_page(0))
+        self.btn_page2.clicked.connect(lambda: self.switch_page(1))
+        self.btn_page3.clicked.connect(lambda: self.switch_page(2))
+
+        # Показываем первую страницу
+        self.switch_page(0)
+
+    def create_menu_button(self, text):
+        """Создаёт стилизованную кнопку для меню"""
+        btn = QPushButton(text)
+        btn.setStyleSheet("""
+            QPushButton {
+                background-color: #23588C;
+                color: #FFFFFE;
+                border: none;
+                padding: 12px;
+                font-size: 22px;
+                text-align: left;
+                border-radius: 5px;
+                height: 150px;
+            }
+            QPushButton:hover {
+                background-color: #3d566e;
+            }
+        """)
+        return btn
+
+    def create_pages(self):
+        """Создаёт страницы с контентом"""
+
+        # Страница 1: Кривая обучения
+        self.page1 = QWidget()
+        layout1 = QVBoxLayout(self.page1)
+        layout1.setContentsMargins(20, 20, 20, 20)
+
+        # Заголовок страницы
+        title1 = QLabel("Кривая обучения")
+        title1.setStyleSheet("font-size: 24px; font-weight: bold; color: #26394D;")
+        layout1.addWidget(title1)
+
+        # График
         self.chart = LearningCurveChart()
-        self.layout.addWidget(self.chart)
+        layout1.addWidget(self.chart)
 
-    def load_users(self):
-        try:
-            db_gen = get_db()
-            db = next(db_gen)
+        # Страница 2: Рейтинг сотрудников
+        self.page2 = QWidget()
+        layout2 = QVBoxLayout(self.page2)
+        layout2.setContentsMargins(20, 20, 20, 20)
 
-            result = db.execute(
-                text("SELECT user_id FROM users ORDER BY user_id LIMIT 20")
-            )
-            users = [str(row[0]) for row in result]
+        # Виджет рейтинга
+        self.user_list = UserListWidget()
+        self.user_list.set_user_role(self.user_data['role'])
+        self.user_list.load_users()
+        layout2.addWidget(self.user_list)
 
-            self.user_combo.clear()
-            self.user_combo.addItems(users)
+        # Страница 3: ML Аналитика
+        self.page3 = QWidget()
+        layout3 = QVBoxLayout(self.page3)
+        layout3.setContentsMargins(20, 20, 20, 20)
 
-            db.close()
+        title3 = QLabel("Аналитика")
+        title3.setStyleSheet("font-size: 24px; font-weight: bold; color: #26394D;")
+        layout3.addWidget(title3)
 
-            if users:
-                self.load_user_data(int(users[0]))
+        # Место для ML аналитики
+        ml_label = QLabel("Здесь будет ML аналитика")
+        ml_label.setStyleSheet("font-size: 16px; color: ##26394D; padding: 50px;")
+        ml_label.setAlignment(Qt.AlignCenter)
+        layout3.addWidget(ml_label)
 
-        except Exception as e:
-            print(f"Ошибка загрузки пользователей: {e}")
-            self.user_combo.addItems(["1", "2", "3", "4", "5"])
+    def switch_page(self, index):
+        """Переключает страницу и обновляет стили кнопок"""
+        # Переключаем страницу
+        self.stacked_widget.setCurrentIndex(index)
 
-    def load_user_data(self, user_id: int):
-        try:
-            db_gen = get_db()
-            db = next(db_gen)
+        # Сбрасываем стили всех кнопок
+        default_style = """
+            QPushButton {
+                background-color: #34495e;
+                color: white;
+                border: none;
+                padding: 12px;
+                font-size: 14px;
+                text-align: left;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #3d566e;
+            }
+        """
+        self.btn_page1.setStyleSheet(default_style)
+        self.btn_page2.setStyleSheet(default_style)
+        self.btn_page3.setStyleSheet(default_style)
 
-            df = AnalyticsQueries.get_user_learning_curve(db, user_id)
-            self.chart.update_chart(df, user_id)
-
-            db.close()
-
-            self.statusBar().showMessage(f"Загружены данные для пользователя {user_id}")
-
-        except Exception as e:
-            print(f"Ошибка загрузки данных: {e}")
-            QMessageBox.warning(self, "Ошибка", f"Не удалось загрузить данные: {str(e)}")
-
-    def on_user_changed(self, index):
-        if index >= 0:
-            user_id = int(self.user_combo.currentText())
-            self.load_user_data(user_id)
-
-    def refresh_data(self):
-        if self.user_combo.count() > 0:
-            user_id = int(self.user_combo.currentText())
-            self.load_user_data(user_id)
+        # Подсвечиваем активную кнопку
+        active_style = """
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 12px;
+                font-size: 14px;
+                text-align: left;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+        """
+        [self.btn_page1, self.btn_page2, self.btn_page3][index].setStyleSheet(active_style)
 
     def logout(self):
         """Выход из системы"""
@@ -136,67 +236,13 @@ class MainWindow(QMainWindow):
             self,
             'Подтверждение',
             'Вы действительно хотите выйти?',
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
+            QMessageBox.Yes | QMessageBox.No
         )
 
         if reply == QMessageBox.Yes:
             self.close()
             # Запускаем новый экземпляр приложения с формой входа
             from .login_dialog import LoginDialog
-            import sys
-            from PyQt5.QtWidgets import QApplication
-
-            dialog = LoginDialog()
-            if dialog.exec_() == LoginDialog.Accepted:
-                user_data = dialog.login_successful
-                self.__init__(user_data)
-                self.show()
-            else:
-                sys.exit()
-
-    def create_charts(self):
-        """Создает вкладки с графиками и рейтингом"""
-        self.tab_widget = QTabWidget()
-        self.tab_widget.setStyleSheet("""
-            QTabWidget::pane {
-                border: 1px solid #34495e;
-                background-color: #2c3e50;
-            }
-            QTabBar::tab {
-                background-color: #34495e;
-                color: white;
-                padding: 8px 15px;
-                margin-right: 2px;
-            }
-            QTabBar::tab:selected {
-                background-color: #3498db;
-            }
-            QTabBar::tab:hover {
-                background-color: #3d566e;
-            }
-        """)
-
-        # Вкладка с графиком
-        self.chart_tab = QWidget()
-        chart_layout = QVBoxLayout(self.chart_tab)
-        self.chart = LearningCurveChart()
-        chart_layout.addWidget(self.chart)
-        self.tab_widget.addTab(self.chart_tab, "📈 Кривая обучения")
-
-        # Вкладка с рейтингом (только для админа)
-        if self.user_data['role'] == 'admin':
-            self.rating_tab = QWidget()
-            rating_layout = QVBoxLayout(self.rating_tab)
-            self.user_list = UserListWidget()
-            self.user_list.set_user_role(self.user_data['role'])
-            self.user_list.load_users()
-            rating_layout.addWidget(self.user_list)
-            self.tab_widget.addTab(self.rating_tab, "🏆 Рейтинг сотрудников")
-
-        self.layout.addWidget(self.tab_widget)
-
-    def refresh_rating(self):
-        """Обновляет рейтинг (вызывается из кнопки обновления)"""
-        if hasattr(self, 'user_list'):
-            self.user_list.load_users()
+            self.login_dialog = LoginDialog()
+            self.login_dialog.login_successful.connect(self.__init__)
+            self.login_dialog.show()
