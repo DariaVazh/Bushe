@@ -420,6 +420,7 @@ class MainWindow(QMainWindow):
         hard_layout.addWidget(hard_title)
 
         self.hard_list = QListWidget()
+        self.hard_list.setMinimumHeight(250)
         self.hard_list.setStyleSheet("""
             QListWidget {
                 border: none;
@@ -450,6 +451,7 @@ class MainWindow(QMainWindow):
         easy_layout.addWidget(easy_title)
 
         self.easy_list = QListWidget()
+        self.easy_list.setMinimumHeight(250)
         self.easy_list.setStyleSheet("""
             QListWidget {
                 border: none;
