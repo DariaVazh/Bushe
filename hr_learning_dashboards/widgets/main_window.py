@@ -75,7 +75,7 @@ class MainWindow(QMainWindow):
         menu_layout.addWidget(line)
 
         # Кнопки меню
-        self.btn_page1 = self.create_menu_button("Кривая обучения")
+        self.btn_page1 = self.create_menu_button("Недельный топ")
         self.btn_page2 = self.create_menu_button("Рейтинг сотрудников")
         self.btn_page3 = self.create_menu_button("ML Аналитика")
 
@@ -155,7 +155,7 @@ class MainWindow(QMainWindow):
     def create_pages(self):
         """Создаёт страницы с контентом"""
 
-        # Страница 1: Кривая обучения
+        # Страница 1: Недельный топ
         self.page1 = QWidget()
         layout1 = QVBoxLayout(self.page1)
         layout1.setContentsMargins(20, 20, 20, 20)
@@ -274,7 +274,7 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(title3)
 
         # Кнопка загрузки
-        self.load_ml_btn = QPushButton("📥 Загрузить ML данные")
+        self.load_ml_btn = QPushButton("Загрузить ML данные")
         self.load_ml_btn.setStyleSheet("""
             QPushButton {
                 background-color: #23588C;
@@ -344,7 +344,7 @@ class MainWindow(QMainWindow):
         bottom_layout.setSpacing(25)
 
         # --- Первый график (индивидуальный) ---
-        individual_title = QLabel("📈 Индивидуальная кривая обучения")
+        individual_title = QLabel("Индивидуальная кривая обучения")
         individual_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #26394D; margin-top: 20px;")
         bottom_layout.addWidget(individual_title)
 
@@ -377,7 +377,7 @@ class MainWindow(QMainWindow):
         bottom_layout.addSpacing(30)
 
         # --- Второй график (среднее по компании) ---
-        average_title = QLabel("📊 Среднее усвоение по компании")
+        average_title = QLabel("Среднее усвоение по компании")
         average_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #26394D;")
         bottom_layout.addWidget(average_title)
 
@@ -417,7 +417,7 @@ class MainWindow(QMainWindow):
         bottom_layout.addWidget(avg_chart_view)
 
         # Кнопка обновления среднего графика
-        self.refresh_avg_btn = QPushButton("🔄 Обновить среднее")
+        self.refresh_avg_btn = QPushButton("Обновить среднее")
         self.refresh_avg_btn.setStyleSheet("""
             QPushButton {
                 background-color: #23588C;
@@ -800,9 +800,6 @@ class MainWindow(QMainWindow):
                     slice_.setLabelPosition(QPieSlice.LabelOutside)
                     slice_.setLabelColor(QColor(38, 57, 77))
 
-            QMessageBox.information(self, "Успех",
-                                    f"Статистика загружена!\nСреднее усвоение: {np.mean(masteries):.1f}%")
-
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка при обновлении: {str(e)}")
             import traceback
@@ -908,7 +905,7 @@ class MainWindow(QMainWindow):
             # Обновляем заголовок
             self.avg_chart.setTitle(f"Среднее усвоение: {df['daily_avg'].mean() * 100:.1f}%")
 
-            QMessageBox.information(self, "Успех", "График среднего усвоения обновлён")
+            # QMessageBox.information(self, "Успех", "График среднего усвоения обновлён")
 
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось обновить график: {str(e)}")
@@ -1084,7 +1081,7 @@ class MainWindow(QMainWindow):
             trend = "рост" if model.coef_[0] > 0 else "снижение"
             self.forecast_chart.setTitle(f"Прогноз: {trend} усвоения на {abs(model.coef_[0]):.1f}% в месяц")
 
-            QMessageBox.information(self, "Успех", "Прогноз обновлён")
+            # QMessageBox.information(self, "Успех", "Прогноз обновлён")
 
         except Exception as e:
             print(f"Ошибка прогноза: {e}")
