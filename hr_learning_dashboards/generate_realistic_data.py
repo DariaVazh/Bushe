@@ -25,6 +25,7 @@ class RealisticDataGenerator:
         self.num_users = 200
         self.num_items = 500
         self.days_back = 60
+        self.max_account_age = 180  # максимальный возраст аккаунта в днях (6 месяцев)
 
         # Реалистичное распределение типов пользователей
         self.user_types = {
@@ -37,7 +38,7 @@ class RealisticDataGenerator:
 
         # Категории знаний
         self.categories = [
-            "Хлеб", "Кондитерка", "СанПиН", "Касса",
+            "Хлеб", "Кондитерка", "СанПіН", "Касса",
             "Охрана труда", "Напитки", "Фастфуд", "Сыры"
         ]
 
@@ -74,7 +75,7 @@ class RealisticDataGenerator:
         return items
 
     def create_users(self):
-        """Создаёт пользователей с реалистичными именами"""
+        """Создаёт пользователей с реалистичными именами и разными датами регистрации"""
         print(f"👥 Создание {self.num_users} пользователей...")
 
         names = ["иван", "петр", "сергей", "анна", "елена", "дмитрий",
@@ -82,6 +83,9 @@ class RealisticDataGenerator:
                  "андрей", "юлия", "николай", "екатерина", "владимир"]
 
         roles = ["пекарь", "бариста", "кассир", "повар", "продавец"]
+
+        # Текущая дата для расчётов
+        now = datetime.now()
 
         users = []
         for i in range(self.num_users):
@@ -94,6 +98,13 @@ class RealisticDataGenerator:
                 weights=[t['weight'] for t in self.user_types.values()]
             )[0]
 
+            # Генерируем случайную дату регистрации в пределах последних 6 месяцев
+            account_age = random.randint(1, self.max_account_age)
+            created_at = now - timedelta(days=account_age)
+
+            # Начальная last_active равна дате регистрации
+            last_active = created_at
+
             user = UserCRUD.create(
                 self.db,
                 user_name=f"{name}{i + 1}",
@@ -102,7 +113,13 @@ class RealisticDataGenerator:
                 user_phone_number=f"+7{random.randint(900, 999)}{random.randint(1000000, 9999999)}",
                 user_password_cash=f"pass{i + 123}"
             )
-            users.append((user, user_type))
+
+            # Обновляем даты создания и последней активности
+            user.created_at = created_at
+            user.last_active = last_active
+            self.db.add(user)
+
+            users.append((user, user_type, created_at))
 
         self.db.commit()
         print(f"✅ Создано {len(users)} пользователей")
@@ -113,16 +130,14 @@ class RealisticDataGenerator:
         return base_retention * np.exp(-forgetting_rate * days / 10)
 
     def generate_interactions(self, users_items):
-        """Генерирует взаимодействия с реалистичными паттернами"""
+        """Генерирует взаимодействия с реалистичными паттернами и корректными датами"""
         users, items = users_items
         print("📝 Генерация взаимодействий...")
 
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=self.days_back)
-
         total_interactions = 0
 
-        for user, user_type in users:
+        for user, user_type, created_at in users:
             user_config = self.user_types[user_type]
             base_success = user_config['base_success']
             forgetting_rate = user_config['forgetting_rate']
@@ -131,10 +146,13 @@ class RealisticDataGenerator:
             preferred_hour = random.choice([9, 10, 11, 14, 15, 16, 19, 20])
 
             user_interactions = 0
-            current_date = start_date
 
             # История повторений для каждого факта
             item_history = {}
+
+            # Начинаем с даты создания аккаунта
+            current_date = created_at
+            last_active_date = created_at
 
             while current_date <= end_date:
                 # Количество взаимодействий в день зависит от типа
@@ -205,6 +223,10 @@ class RealisticDataGenerator:
                         )
                         self.db.add(interaction)
 
+                        # Обновляем последнюю активность
+                        if interaction.timestamp > last_active_date:
+                            last_active_date = interaction.timestamp
+
                         # Обновляем историю
                         item_history[item.item_id] = interaction.timestamp
 
@@ -221,7 +243,12 @@ class RealisticDataGenerator:
                 user_interactions += interactions_today
                 current_date += timedelta(days=1)
 
-            print(f"   {user.user_name} ({user_type}): {user_interactions} взаим.")
+            # Обновляем last_active пользователя
+            user.last_active = last_active_date
+            self.db.add(user)
+
+            print(
+                f"   {user.user_name} ({user_type}): {user_interactions} взаим. (создан: {created_at.strftime('%d.%m')}, активен до: {last_active_date.strftime('%d.%m')})")
 
         self.db.commit()
         print(f"✅ Всего создано {total_interactions} взаимодействий")

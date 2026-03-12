@@ -360,7 +360,7 @@ class MainWindow(QMainWindow):
 
         user_select_layout.addWidget(self.ml_user_combo)
 
-        self.ml_refresh_btn = QPushButton("🔄 Показать")
+        self.ml_refresh_btn = QPushButton("Показать")
         self.ml_refresh_btn.clicked.connect(self.load_ml_user_data)
         user_select_layout.addWidget(self.ml_refresh_btn)
 
@@ -524,7 +524,7 @@ class MainWindow(QMainWindow):
         forecast_layout = QVBoxLayout(forecast_widget)
         forecast_layout.setContentsMargins(0, 20, 0, 0)
 
-        forecast_title = QLabel("🔮 Прогноз усвоения на 30 дней")
+        forecast_title = QLabel("Прогноз усвоения на 30 дней")
         forecast_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #26394D; margin-top: 20px;")
         forecast_layout.addWidget(forecast_title)
 
@@ -576,7 +576,7 @@ class MainWindow(QMainWindow):
         forecast_layout.addWidget(forecast_chart_view)
 
         # Кнопка обновления прогноза
-        self.refresh_forecast_btn = QPushButton("🔮 Обновить прогноз")
+        self.refresh_forecast_btn = QPushButton("Обновить прогноз")
         self.refresh_forecast_btn.setStyleSheet("""
             QPushButton {
                 background-color: #23588C;
@@ -725,11 +725,11 @@ class MainWindow(QMainWindow):
 
             # Метрики
             stats_data = [
-                ("👥 Всего сотрудников:", f"{total} чел.", "#26394D"),
-                ("📊 Среднее усвоение:", f"{np.mean(masteries):.1f}%", "#23588C"),
-                ("📈 Медиана:", f"{np.median(masteries):.1f}%", "#0066CC"),
-                ("📉 Минимум:", f"{min(masteries):.1f}%", "#775928"),
-                ("📈 Максимум:", f"{max(masteries):.1f}%", "#26394D"),
+                ("Всего сотрудников:", f"{total} чел.", "#26394D"),
+                ("Среднее усвоение:", f"{np.mean(masteries):.1f}%", "#23588C"),
+                ("Медиана:", f"{np.median(masteries):.1f}%", "#0066CC"),
+                ("Минимум:", f"{min(masteries):.1f}%", "#775928"),
+                ("Максимум:", f"{max(masteries):.1f}%", "#26394D"),
             ]
 
             for label_text, value_text, color in stats_data:
@@ -758,18 +758,18 @@ class MainWindow(QMainWindow):
 
             # Уровни
             levels = {
-                '🔥 Отлично (>50%)': sum(1 for m in masteries if m >= 50),
-                '👍 Хорошо (30-50%)': sum(1 for m in masteries if 30 <= m < 50),
-                '👌 Средне (10-30%)': sum(1 for m in masteries if 10 <= m < 30),
-                '🔴 Критично (<10%)': sum(1 for m in masteries if m < 10)
+                'Отлично (>50%)': sum(1 for m in masteries if m >= 50),
+                'Хорошо (30-50%)': sum(1 for m in masteries if 30 <= m < 50),
+                'Средне (10-30%)': sum(1 for m in masteries if 10 <= m < 30),
+                'Критично (<10%)': sum(1 for m in masteries if m < 10)
             }
 
             # Цвета для уровней
             colors = {
-                '🔥 Отлично (>50%)': QColor(35, 88, 140),  # #23588C
-                '👍 Хорошо (30-50%)': QColor(0, 102, 204),  # #0066CC
-                '👌 Средне (10-30%)': QColor(119, 89, 40),  # #775928
-                '🔴 Критично (<10%)': QColor(38, 57, 77)  # #26394D
+                'Отлично (>50%)': QColor(35, 88, 140),  # #23588C
+                'Хорошо (30-50%)': QColor(0, 102, 204),  # #0066CC
+                'Средне (10-30%)': QColor(119, 89, 40),  # #775928
+                'Критично (<10%)': QColor(38, 57, 77)  # #26394D
             }
 
             for level_name, count in levels.items():
@@ -1122,7 +1122,7 @@ class MainWindow(QMainWindow):
             pred_value = max(40, min(90, pred_value))
             self.forecast_series.append(next_date.toMSecsSinceEpoch(), pred_value)
 
-        self.forecast_chart.setTitle("🔮 Прогноз усвоения (тестовые данные)")
+        self.forecast_chart.setTitle("Прогноз усвоения (тестовые данные)")
         QMessageBox.information(self, "Демо", "Показан тестовый прогноз (нет реальных данных)")
 
     def update_weekly_top(self):
@@ -1180,7 +1180,7 @@ class MainWindow(QMainWindow):
                 self.top_table.setItem(i, 2, score_item)
 
             self.top_title.setText(
-                f"🏆 Топ пользователей за неделю ({week_ago.strftime('%d.%m')} - {today.strftime('%d.%m')})")
+                f"Топ пользователей за неделю ({week_ago.strftime('%d.%m')} - {today.strftime('%d.%m')})")
 
         except Exception as e:
             print(f"Ошибка обновления топа: {e}")
