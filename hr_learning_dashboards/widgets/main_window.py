@@ -5,7 +5,7 @@ import pandas as pd
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QPushButton, QLabel,
                              QStackedWidget, QFrame, QMessageBox, QComboBox, QScrollArea, QListWidget)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTime, QDate
 from sqlalchemy import text
 from PyQt5.QtWidgets import QTabWidget, QWidget, QVBoxLayout
 from .user_list_widget import UserListWidget
@@ -356,6 +356,7 @@ class MainWindow(QMainWindow):
         self.avg_series.setPen(pen)
 
         self.avg_chart.addSeries(self.avg_series)
+        self.avg_chart.setMinimumHeight(500)
 
         # Оси
         axis_x = QDateTimeAxis()
@@ -494,6 +495,7 @@ class MainWindow(QMainWindow):
         self.forecast_chart.setAnimationOptions(QChart.SeriesAnimations)
         self.forecast_chart.setTheme(QChart.ChartThemeLight)
         self.forecast_chart.setBackgroundVisible(False)
+        self.forecast_chart.setMinimumHeight(500)
 
         # Серия для исторических данных
         self.historical_series = QLineSeries()
@@ -834,12 +836,29 @@ class MainWindow(QMainWindow):
             # Заполняем серию
             from PyQt5.QtCore import QDateTime
 
+            # Альтернативный способ конвертации дат
             for _, row in df.iterrows():
                 date_str = str(row['date'])
-                qdatetime = QDateTime.fromString(date_str, "yyyy-MM-dd")
-                if qdatetime.isValid():
+                # Преобразуем строку в datetime, затем в timestamp
+                date_parts = date_str.split('-')
+                if len(date_parts) == 3:
+                    qdatetime = QDateTime()
+                    qdatetime.setDate(QDate(int(date_parts[0]), int(date_parts[1]), int(date_parts[2])))
+                    qdatetime.setTime(QTime(0, 0, 0))
                     timestamp = qdatetime.toMSecsSinceEpoch()
                     self.avg_series.append(timestamp, row['daily_avg'] * 100)
+            # После добавления данных настройте диапазон оси X
+
+            # Получаем минимальную и максимальную даты
+            min_date = QDateTime.fromString(str(df['date'].min()), "yyyy-MM-dd")
+            max_date = QDateTime.fromString(str(df['date'].max()), "yyyy-MM-dd")
+
+            # Добавляем небольшой отступ
+            min_date = min_date.addDays(-1)
+            max_date = max_date.addDays(1)
+
+            axis_x = self.avg_chart.axes(Qt.Horizontal)[0]
+            axis_x.setRange(min_date, max_date)
 
             # Обновляем диапазон оси Y
             max_value = df['daily_avg'].max() * 100
@@ -973,42 +992,55 @@ class MainWindow(QMainWindow):
                 self.generate_test_forecast()
                 return
 
-            from PyQt5.QtCore import QDateTime
+            from PyQt5.QtCore import QDateTime, QDate, QTime
             import numpy as np
             from sklearn.linear_model import LinearRegression
 
             # Заполняем исторические данные
-            dates = []
+            dates = []  # теперь будем хранить QDateTime объекты
             values = []
+            timestamps = []  # для регрессии будем использовать индексы
 
             for _, row in df.iterrows():
                 date_str = str(row['date'])
-                qdatetime = QDateTime.fromString(date_str, "yyyy-MM-dd")
-                if qdatetime.isValid():
-                    timestamp = qdatetime.toMSecsSinceEpoch()
-                    self.historical_series.append(timestamp, row['daily_avg'])
-                    dates.append(timestamp)
-                    values.append(row['daily_avg'])
+                # Правильное создание QDateTime из даты
+                date_parts = date_str.split('-')
+                if len(date_parts) == 3:
+                    qdate = QDate(int(date_parts[0]), int(date_parts[1]), int(date_parts[2]))
+                    qdatetime = QDateTime(qdate, QTime(0, 0, 0))
+
+                    if qdatetime.isValid():
+                        timestamp = qdatetime.toMSecsSinceEpoch()
+                        self.historical_series.append(timestamp, row['daily_avg'])
+                        dates.append(qdatetime)  # сохраняем QDateTime объект
+                        values.append(row['daily_avg'])
 
             if len(values) < 5:
                 self.generate_test_forecast()
                 return
 
             # Строим простую модель прогноза (линейная регрессия)
-            X = np.array(range(len(values))).reshape(-1, 1)
+            X = np.array(range(len(values))).reshape(-1, 1)  # используем индексы как X
             y = np.array(values)
 
             model = LinearRegression()
             model.fit(X, y)
 
             # Прогноз на 30 дней вперёд
-            last_date = QDateTime.fromMSecsSinceEpoch(dates[-1])
+            last_date = dates[-1]  # теперь это QDateTime объект
 
             for i in range(1, 31):
                 next_date = last_date.addDays(i)
                 pred_value = model.predict([[len(values) + i - 1]])[0]
                 pred_value = max(0, min(100, pred_value))  # ограничиваем 0-100
                 self.forecast_series.append(next_date.toMSecsSinceEpoch(), pred_value)
+
+            # Обновляем диапазон оси X, чтобы вместить прогноз
+            if dates:
+                axis_x = self.forecast_chart.axes(Qt.Horizontal)[0]
+                min_date = dates[0]
+                max_date = last_date.addDays(30)
+                axis_x.setRange(min_date, max_date)
 
             # Обновляем заголовок
             trend = "рост" if model.coef_[0] > 0 else "снижение"
@@ -1018,6 +1050,8 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             print(f"Ошибка прогноза: {e}")
+            import traceback
+            traceback.print_exc()
             self.generate_test_forecast()
 
     def generate_test_forecast(self):
