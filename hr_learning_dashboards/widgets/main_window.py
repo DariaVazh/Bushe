@@ -1,10 +1,10 @@
 # hr_learning_dashboards/widgets/main_window.py
-import sys
 import os
 import pandas as pd
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QPushButton, QLabel,
-                             QStackedWidget, QFrame, QMessageBox, QComboBox, QScrollArea, QListWidget)
+                             QStackedWidget, QFrame, QMessageBox, QComboBox, QScrollArea, QListWidget, QTableWidget,
+                             QHeaderView, QTableWidgetItem)
 from PyQt5.QtCore import Qt, QTime, QDate
 from sqlalchemy import text
 from PyQt5.QtWidgets import QTabWidget, QWidget, QVBoxLayout
@@ -113,6 +113,7 @@ class MainWindow(QMainWindow):
 
         # Создаём страницы
         self.create_pages()
+        self.update_weekly_top()
 
         # Добавляем страницы в стек
         self.stacked_widget.addWidget(self.page1)
@@ -158,15 +159,50 @@ class MainWindow(QMainWindow):
         self.page1 = QWidget()
         layout1 = QVBoxLayout(self.page1)
         layout1.setContentsMargins(20, 20, 20, 20)
+        layout1.setSpacing(20)
 
         # Заголовок страницы
-        title1 = QLabel("Кривая обучения")
+        title1 = QLabel("Недельный топ")
         title1.setStyleSheet("font-size: 24px; font-weight: bold; color: #26394D;")
         layout1.addWidget(title1)
 
-        # График
-        self.chart = LearningCurveChart()
-        layout1.addWidget(self.chart)
+        # === ТОП ПОЛЬЗОВАТЕЛЕЙ ЗА НЕДЕЛЮ (ДОБАВЛЯЕМ ЭТОТ БЛОК) ===
+        top_widget = QWidget()
+        top_layout = QVBoxLayout(top_widget)
+        top_layout.setContentsMargins(0, 20, 0, 0)
+
+        self.top_title = QLabel("Топ пользователей за текущую неделю")
+        self.top_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #26394D; margin-bottom: 10px;")
+        top_layout.addWidget(self.top_title)
+
+        # Таблица для топа
+        self.top_table = QTableWidget()
+        self.top_table.setColumnCount(3)
+        self.top_table.setHorizontalHeaderLabels(["Имя", "Должность", "Баллы"])
+        self.top_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.top_table.setStyleSheet("""
+            QTableWidget {
+                background-color: #FFFFFE;
+                border: 1px solid #23588C;
+                border-radius: 5px;
+                padding: 5px;
+            }
+            QTableWidget::item {
+                padding: 8px;
+            }
+            QHeaderView::section {
+                background-color: #23588C;
+                color: white;
+                padding: 8px;
+                font-weight: bold;
+            }
+        """)
+        self.top_table.setMinimumHeight(390)
+        top_layout.addWidget(self.top_table)
+
+        layout1.addWidget(top_widget)
+        layout1.addStretch()
+        # === КОНЕЦ БЛОКА С ТОПОМ ===
 
         # Страница 2: Рейтинг сотрудников
         self.page2 = QWidget()
@@ -320,6 +356,8 @@ class MainWindow(QMainWindow):
         user_select_layout.addWidget(QLabel("Выберите сотрудника:"))
         self.ml_user_combo = QComboBox()
         self.ml_user_combo.setMinimumWidth(250)
+        self.ml_user_combo.setMaximumHeight(500)
+
         user_select_layout.addWidget(self.ml_user_combo)
 
         self.ml_refresh_btn = QPushButton("🔄 Показать")
@@ -987,10 +1025,10 @@ class MainWindow(QMainWindow):
             df = pd.read_sql(query, db.bind)
             db.close()
 
-            if df.empty:
-                # Если нет реальных данных, используем тестовые
-                self.generate_test_forecast()
-                return
+            # if df.empty:
+            #     # Если нет реальных данных, используем тестовые
+            #     self.update_forecast()
+            #     return
 
             from PyQt5.QtCore import QDateTime, QDate, QTime
             import numpy as np
@@ -1016,7 +1054,7 @@ class MainWindow(QMainWindow):
                         values.append(row['daily_avg'])
 
             if len(values) < 5:
-                self.generate_test_forecast()
+                # self.generate_test_forecast()
                 return
 
             # Строим простую модель прогноза (линейная регрессия)
@@ -1052,7 +1090,7 @@ class MainWindow(QMainWindow):
             print(f"Ошибка прогноза: {e}")
             import traceback
             traceback.print_exc()
-            self.generate_test_forecast()
+            # self.generate_test_forecast()
 
     def generate_test_forecast(self):
         """Генерирует тестовый прогноз (для демо)"""
@@ -1089,3 +1127,63 @@ class MainWindow(QMainWindow):
 
         self.forecast_chart.setTitle("🔮 Прогноз усвоения (тестовые данные)")
         QMessageBox.information(self, "Демо", "Показан тестовый прогноз (нет реальных данных)")
+
+    def update_weekly_top(self):
+        """Обновляет топ пользователей за текущую неделю"""
+        try:
+            from datetime import datetime, timedelta
+
+            week_ago = datetime.now() - timedelta(days=7)
+            today = datetime.now()
+
+            db_gen = get_db()
+            db = next(db_gen)
+
+            query = text("""
+                SELECT 
+                    u.user_name,
+                    u.user_surname,
+                    u.user_role,
+                    COALESCE(SUM(CASE WHEN i.outcome = 1 THEN 10 ELSE 0 END), 0) as weekly_score
+                FROM users u
+                LEFT JOIN interactions i ON u.user_id = i.user_id 
+                    AND i.timestamp > :week_ago
+                WHERE u.user_name != 'admin'
+                GROUP BY u.user_id, u.user_name, u.user_surname, u.user_role
+                HAVING COUNT(i.interaction_id) > 0
+                ORDER BY weekly_score DESC
+                LIMIT 10
+            """)
+
+            result = db.execute(query, {"week_ago": week_ago})
+            rows = result.fetchall()
+            db.close()
+
+            self.top_table.setRowCount(0)
+
+            if not rows:
+                self.top_table.setRowCount(1)
+                self.top_table.setItem(0, 0, QTableWidgetItem("Нет данных за неделю"))
+                return
+
+            self.top_table.setRowCount(len(rows))
+
+            for i, row in enumerate(rows):
+
+                # Имя
+                full_name = f"{row[0]} {row[1]}"
+                self.top_table.setItem(i, 0, QTableWidgetItem(full_name))
+
+                # Должность
+                self.top_table.setItem(i, 1, QTableWidgetItem(row[2]))
+
+                # Баллы
+                score_item = QTableWidgetItem(str(row[3]))
+                score_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                self.top_table.setItem(i, 2, score_item)
+
+            self.top_title.setText(
+                f"🏆 Топ пользователей за неделю ({week_ago.strftime('%d.%m')} - {today.strftime('%d.%m')})")
+
+        except Exception as e:
+            print(f"Ошибка обновления топа: {e}")

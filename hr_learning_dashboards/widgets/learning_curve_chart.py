@@ -12,10 +12,6 @@ class LearningCurveChart(QWidget):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
 
-        self.title = QLabel("Кривая обучения сотрудника")
-        self.title.setStyleSheet("font-size: 16px; font-weight: bold; color: #ffffff;")
-        self.layout.addWidget(self.title)
-
         self.chart_view = QChartView()
         self.chart_view.setMinimumHeight(400)
         self.chart_view.setRenderHint(QPainter.Antialiasing)
@@ -31,7 +27,6 @@ class LearningCurveChart(QWidget):
 
         # Создаем серию
         series = QLineSeries()
-        series.setName("Успешность")
 
         for _, row in df.iterrows():
             date_str = str(row['date'])
@@ -43,15 +38,18 @@ class LearningCurveChart(QWidget):
         # Настраиваем график
         chart = QChart()
         chart.addSeries(series)
-        chart.setTitle(f"Динамика успешности обучения - Пользователь #{user_id}")
+        chart.setTitle(f"Пользователь #{user_id}")
         chart.setAnimationOptions(QChart.SeriesAnimations)
         chart.setTheme(QChart.ChartThemeDark)
         chart.setBackgroundVisible(False)
+        chart.setTitleBrush(QColor(35, 57,77))
 
         # Ось X
         axis_x = QDateTimeAxis()
         axis_x.setFormat("dd.MM")
         axis_x.setTitleText("Дата")
+        axis_x.setLabelsColor(QColor(38, 57, 77))
+        axis_x.setTitleBrush(QColor(35, 57,77))
         chart.addAxis(axis_x, Qt.AlignBottom)
         series.attachAxis(axis_x)
 
@@ -61,6 +59,9 @@ class LearningCurveChart(QWidget):
         axis_y.setTitleText("Успешность (%)")
         chart.addAxis(axis_y, Qt.AlignLeft)
         series.attachAxis(axis_y)
+        axis_y.setLabelsColor(QColor(38, 57, 77))
+        axis_y.setTitleBrush(QColor(35, 57,77))
+
 
         # Стиль линии
         pen = QPen(QColor(46, 204, 113))
