@@ -1,0 +1,124 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <!-- Иконки для входа -->
+    <qresource prefix="/login">
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/1. вход/иконка _вход_.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/1. вход/книпка регистрации.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/1. вход/плашка буше .ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/1. вход/фон пол догин и пароль.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/1. вход/иконка готово.ico</file>
+    </qresource>
+    
+    <!-- Иконки главного меню -->
+    <qresource prefix="/mainmenu">
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 1.1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 1.2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 1.3.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 2.1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 2.2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 2.3.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 3.1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 3.2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 3.3.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 4.1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 4.2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 4.3.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 5.1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 5.2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 5.3.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 6.1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 6.2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 6.3.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 7.1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 7.2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 7.3.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 8.1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 8.2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 8.3.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/иконка 9.1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/2. главное меню/1. текст .ico</file>
+    </qresource>
+    
+    <!-- Иконки рейтинга -->
+    <qresource prefix="/rating">
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/3. рейтинг/2. надпись.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/3. рейтинг/медаль 1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/3. рейтинг/медаль 2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/3. рейтинг/медаль 3.ico</file>
+    </qresource>
+    
+    <!-- Иконки справочника -->
+    <qresource prefix="/guide">
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/1.0.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/1.1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/1.2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/1.3.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/1.4.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/3.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/4.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/5.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/название.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/экраны справочника с инфой и ошибкой/название составы.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/экраны справочника с инфой и ошибкой/ошибка 0.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/экраны справочника с инфой и ошибкой/ошибка 1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/экраны справочника с инфой и ошибкой/ошибка 2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/экраны справочника с инфой и ошибкой/ошибка 3.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/5-8. справочник/экраны справочника с инфой и ошибкой/рецепт.ico</file>
+    </qresource>
+    
+    <!-- Иконки профиля -->
+    <qresource prefix="/profile">
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/9. профиль/8.1. фон под процент.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/9. профиль/иконка выхода.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/9. профиль/иконка профиля.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/9. профиль/иконка чата.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/9. профиль/огонёк.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/9. профиль/рейтинг.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/9. профиль/фон белый общий.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/9. профиль/фон под фио.ico</file>
+    </qresource>
+    
+    <!-- Иконки ингредиентов -->
+    <qresource prefix="/ingredients">
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/брусника полное.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/брусника пустое.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/вензель.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/задание решено верно.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/задание решено с ошибко.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/задание.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/кнопка готово.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/кнопка спраки верхняя панель.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/миндаль полное.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/миндаль пустое.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/молоко полное.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/молоко пустое.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/мука полное.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/мука пустое.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/фисташки пустое.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/10-13. собери ингридиенты/фисташки полное.ico</file>
+    </qresource>
+    
+    <!-- Нижняя панель -->
+    <qresource prefix="/bottom">
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/нижняя панель/н.п. 1.1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/нижняя панель/н.п. 1.2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/нижняя панель/н.п. 2.1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/нижняя панель/н.п. 2.2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/нижняя панель/н.п. 3.1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/нижняя панель/н.п. 3.2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/нижняя панель/н.п. 4.1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/нижняя панель/н.п. 4.2.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/нижняя панель/н.п. 5.1.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/нижняя панель/н.п. 5.2.ico</file>
+    </qresource>
+    
+    <!-- Фон и шрифты -->
+    <qresource prefix="/resources">
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/фон+шрифты+верх.панель/огонёк.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/фон+шрифты+верх.панель/рейтинг.ico</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/фон+шрифты+верх.панель/фон.png</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/фон+шрифты+верх.панель/Aristotelica-Pro-Text-Extralight.ttf</file>
+        <file>C:/Users/Фёдор/PycharmProjects/Bushe/MyIcons/фон+шрифты+верх.панель/kudryashev-display-sans.ttf</file>
+    </qresource>
+</RCC>
