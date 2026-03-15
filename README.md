@@ -1,7 +1,5 @@
 # Bushe 
 
-Комплексная система аналитики обучения (Learning Analytics), состоящая из двух приложений: десктопного дашборда для администраторов и мобильного приложения для сотрудников. Проект превращает данные об обучении в активный инструмент управления образовательным процессом с помощью машинного обучения и геймификации.
-
 ![Python](https://img.shields.io/badge/Python-3.9+-blue?logo=python)
 ![PyQt](https://img.shields.io/badge/GUI-PyQt-green?logo=qt)
 ![PostgreSQL](https://img.shields.io/badge/DB-PostgreSQL-blue?logo=postgresql)
