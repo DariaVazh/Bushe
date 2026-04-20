@@ -4,11 +4,9 @@ from sqlalchemy.orm import sessionmaker, Session
 from typing import Generator
 import os
 
-# Базовый класс для всех моделей
-Base = declarative_base()  # Теперь предупреждения не будет
+Base = declarative_base() 
 
-# Настройки подключения
-DATABASE_URL = "postgresql://postgres:kotsemen16@localhost:1843/learning_db"
+DATABASE_URL = ###
 
 
 engine = create_engine(
@@ -25,7 +23,6 @@ SessionLocal = sessionmaker(
 )
 
 def create_tables():
-    """Создает все таблицы в базе данных"""
     Base.metadata.create_all(bind=engine)
 
 def get_db() -> Generator[Session, None, None]:
